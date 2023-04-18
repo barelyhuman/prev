@@ -4,7 +4,7 @@ import BaseLayout from "../layouts/BaseLayout.js";
 
 export function get(req, res) {
   return (
-    <BaseLayout>
+    <BaseLayout title="Counter">
       <Navigation />
       <Counter />
     </BaseLayout>
