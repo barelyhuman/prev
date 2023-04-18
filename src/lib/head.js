@@ -1,1 +1,1 @@
-export * from "hoofd/preact";
+export * from 'hoofd/preact'

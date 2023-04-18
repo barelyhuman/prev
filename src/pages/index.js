@@ -1,5 +1,5 @@
-import Navigation from "../components/navigation.js";
-import BaseLayout from "../layouts/BaseLayout.js";
+import Navigation from '../components/navigation.js'
+import BaseLayout from '../layouts/BaseLayout.js'
 
 export function get(req, res) {
   return (
@@ -8,5 +8,5 @@ export function get(req, res) {
 
       <h1 class="font-semibold">Home</h1>
     </BaseLayout>
-  );
+  )
 }

@@ -27,5 +27,5 @@ export default function Navigation() {
         </a>
       </li>
     </ul>
-  );
+  )
 }
