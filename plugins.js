@@ -1,6 +1,27 @@
 import presetTailwind from '@twind/preset-tailwind'
 import { defineConfig, extract, install } from '@twind/core'
 import { toStatic } from 'hoofd/preact'
+import { extractCss } from 'goober'
+import { setup } from 'goober'
+import { h } from 'preact'
+import recast from 'recast'
+
+function gooberPlugin(plug) {
+  plug.setup = () => {
+    setup(h)
+  }
+
+  plug.render = componentTree => {
+    componentTree.head.push(`<style id="_goober">${extractCss()}</style>`)
+    return componentTree
+  }
+
+  plug.injectOnClient = mod => {
+    const toInject = recast.parse(`import {setup} from "goober"; setup(h);`)
+    toInject.program.body = toInject.program.body.concat(mod.program.body)
+    return toInject
+  }
+}
 
 function twindPlugin(plug) {
   plug.setup = () => {
@@ -47,4 +68,4 @@ const stringifyHoofd = (title, metas, links) => {
   `
 }
 
-export default [twindPlugin, hoofdPlugin]
+export default [twindPlugin, hoofdPlugin, gooberPlugin]

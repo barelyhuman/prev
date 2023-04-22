@@ -6,9 +6,13 @@ import path from 'node:path'
 import preactRenderToString from 'preact-render-to-string'
 import glob from 'tiny-glob'
 import plugins from './plugins.js'
-
+import fs from 'fs'
 import { nodeExternalsPlugin } from 'esbuild-node-externals'
 import { fileURLToPath } from 'node:url'
+import { parse, print } from 'recast'
+import { createRequire } from 'node:module'
+
+const require = createRequire(import.meta.url)
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const islandDirectory = '.prev'
@@ -19,16 +23,16 @@ const plugRegister = []
 main()
 
 async function main() {
-  const [entries] = await builder(islandDirectory)
-  const app = express()
-  const router = new express.Router()
-
   plugins.forEach(e => {
     const plug = {}
     e(plug)
     plug.setup && plug.setup()
     plugRegister.push(plug)
   })
+
+  const [entries] = await builder(islandDirectory)
+  const app = express()
+  const router = new express.Router()
 
   const promises = entries
     .map(x => {
@@ -60,7 +64,7 @@ function renderer(comp) {
   const html = preactRenderToString(comp)
   const htmlTree = plugRegister.reduce(
     (acc, x) => {
-      return x.render(acc)
+      return x.render ? x.render(acc) : acc
     },
     {
       head: [],
@@ -156,6 +160,30 @@ function getClientConfig(entries, outDir) {
     loader: {
       '.js': 'jsx',
     },
+    plugins: [
+      {
+        name: 'injector',
+        async setup(build) {
+          build.onLoad(
+            { filter: /\.island\.client\.(js|ts)x?$/ },
+            async args => {
+              const baseCode = fs.readFileSync(args.path, 'utf8')
+              const ast = parse(baseCode, {
+                parser: require('recast/parsers/babel-ts'),
+              })
+              const withInjections = plugRegister.reduce((acc, x) => {
+                return (x.injectOnClient && x.injectOnClient(acc)) || acc
+              }, ast)
+
+              return {
+                contents: print(withInjections).code,
+                loader: 'jsx',
+              }
+            }
+          )
+        },
+      },
+    ],
   }
 }
 
