@@ -7,6 +7,7 @@ import preactRenderToString from 'preact-render-to-string'
 import glob from 'tiny-glob'
 import plugins from './plugins.js'
 import fs from 'fs'
+import fsPromises from 'fs/promises'
 import { nodeExternalsPlugin } from 'esbuild-node-externals'
 import { fileURLToPath } from 'node:url'
 import { parse, print } from 'recast'
@@ -23,6 +24,13 @@ const plugRegister = []
 main()
 
 async function main() {
+  await fsPromises.rmdir(path.join(islandDirectory, '.client'), {
+    recursive: true,
+  })
+  await fsPromises.rmdir(path.join(islandDirectory, '.generated'), {
+    recursive: true,
+  })
+
   plugins.forEach(e => {
     const plug = {}
     e(plug)
@@ -88,9 +96,12 @@ async function builder(baseDir) {
 
   await esbuild.build(getServerConfig(entries, baseDir))
 
-  const generatedEntries = await glob(`${baseDir}/.generated/**/*.client.js`, {
-    absolute: true,
-  })
+  const generatedEntries = await glob(
+    `${baseDir}/.generated/**/*.client-is*.js`,
+    {
+      absolute: true,
+    }
+  )
 
   await esbuild.build(
     getClientConfig(generatedEntries, path.join(baseDir, '.client'))
@@ -165,7 +176,7 @@ function getClientConfig(entries, outDir) {
         name: 'injector',
         async setup(build) {
           build.onLoad(
-            { filter: /\.island\.client\.(js|ts)x?$/ },
+            { filter: /\.island\.client(-\w*)?\.(js|ts)x?$/ },
             async args => {
               const baseCode = fs.readFileSync(args.path, 'utf8')
               const ast = parse(baseCode, {
@@ -203,8 +214,9 @@ function getServerConfig(entries, outDir) {
     plugins: [
       nodeExternalsPlugin(),
       preactIslandPlugin({
-        clientDir: 'public',
+        baseURL: 'public',
         atomic: true,
+        hash: true,
         cwd: path.resolve(fileURLToPath(new URL('.', import.meta.url)), outDir),
       }),
     ],
