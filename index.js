@@ -146,7 +146,7 @@ async function registerRoute(router, registerKey, outDir) {
   }
 
   const routeDef = router.route(routeFor)
-  const allowedKeys = ['get', 'post']
+  const allowedKeys = ['get', 'post', 'delete']
 
   allowedKeys.forEach(httpMethod => {
     if (httpMethod === 'get') {
