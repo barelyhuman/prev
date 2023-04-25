@@ -18,7 +18,7 @@ function gooberPlugin(plug) {
 
   plug.injectOnClient = mod => {
     const toInject = recast.parse(`import {setup} from "goober"; setup(h);`)
-    toInject.program.body = toInject.program.body.concat(mod.program.body)
+    toInject.program.body = [...toInject.program.body, ...mod.program.body]
     return toInject
   }
 }
@@ -52,15 +52,15 @@ function hoofdPlugin(plug) {
   }
 }
 
-const stringifyHoofd = (title, metas, links) => {
-  const stringifyTag = (tagName, tags) =>
-    tags.reduce((acc, tag) => {
-      ;`${acc}<${tagName}${Object.keys(tag).reduce(
-        (properties, key) => `${properties} ${key}="${tag[key]}"`,
-        ''
-      )}>`
-    }, '')
+const stringifyTag = (tagName, tags) =>
+  tags.reduce((acc, tag) => {
+    ;`${acc}<${tagName}${Object.keys(tag).reduce(
+      (properties, key) => `${properties} ${key}="${tag[key]}"`,
+      ''
+    )}>`
+  }, '')
 
+const stringifyHoofd = (title, metas, links) => {
   return `
     <title>${title}</title>
     ${stringifyTag('meta', metas)} 

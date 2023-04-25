@@ -1,0 +1,13 @@
+{
+  "parserOptions": {
+    "ecmaFeatures": {
+      "jsx": true
+    }
+  },
+  "extends": ["plugin:unicorn/recommended", "plugin:prettier/recommended"],
+  "rules": {
+    "unicorn/prevent-abbreviations": "off",
+    "unicorn/no-array-reduce": "off",
+    "unicorn/filename-case": "off"
+  }
+}

@@ -21,17 +21,17 @@ const DYNAMIC_PARAM_START = /\/\+/g
 const ENDS_WITH_EXT = /\.(jsx?|tsx?)$/
 const plugRegister = []
 
-main()
+await main()
 
 async function main() {
   cleanup()
 
-  plugins.forEach(e => {
+  for (const e of plugins) {
     const plug = {}
     e(plug)
     plug.setup && plug.setup()
     plugRegister.push(plug)
-  })
+  }
 
   const [entries] = await builder(islandDirectory)
   const app = express()
@@ -119,7 +119,7 @@ async function builder(baseDir) {
 }
 
 function isDynamicKey(registerKey, baseDir) {
-  const replacementRegex = RegExp(`^${baseDir}\/pages`)
+  const replacementRegex = new RegExp(`^${baseDir}\/pages`)
   let routeFor = registerKey
     .replace(replacementRegex, '')
     .replace(ENDS_WITH_EXT, '')
@@ -129,7 +129,7 @@ function isDynamicKey(registerKey, baseDir) {
 async function registerRoute(router, registerKey, outDir) {
   let mod = await import(path.resolve(registerKey))
   mod = mod.default || mod
-  const replacementRegex = RegExp(`^${outDir}\/pages`)
+  const replacementRegex = new RegExp(`^${outDir}\/pages`)
   if (!replacementRegex.test(registerKey)) {
     return
   }
@@ -148,7 +148,7 @@ async function registerRoute(router, registerKey, outDir) {
   const routeDef = router.route(routeFor)
   const allowedKeys = ['get', 'post', 'delete']
 
-  allowedKeys.forEach(httpMethod => {
+  for (const httpMethod of allowedKeys) {
     if (httpMethod === 'get') {
       routeDef.get(async (req, res) => {
         const result = await mod.get(req, res)
@@ -159,12 +159,12 @@ async function registerRoute(router, registerKey, outDir) {
         res.write(renderer(result))
         return res.end()
       })
-      return
+      continue
     }
     if (mod[httpMethod]) {
       routeDef[httpMethod](mod[httpMethod])
     }
-  })
+  }
 }
 
 function getClientConfig(entries, outDir) {
