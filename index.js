@@ -37,7 +37,7 @@ async function main() {
   const app = express()
   const router = new express.Router()
 
-  const promises = entries
+  const routeRegisterSeq = await entries
     .map(x => {
       return x.replace(path.resolve(__dirname, 'src'), islandDirectory)
     })
@@ -49,17 +49,21 @@ async function main() {
       }
       return acc
     }, [])
-    .map(async registerKey =>
-      registerRoute(router, registerKey, islandDirectory)
-    )
+    .map(registerKey => {
+      return () => registerRoute(router, registerKey, islandDirectory)
+    })
 
-  await Promise.all(promises)
+  // Serially register the routes
+  await routeRegisterSeq.reduce((acc, item) => {
+    return acc.then(_ => item())
+  }, Promise.resolve())
 
   app.use(router)
   app.use('/public', express.static(path.join(islandDirectory, '.client')))
 
-  app.listen(3000, () => {
-    console.log('> Listening on 3000')
+  const PORT = process.env.PORT || 3000
+  app.listen(PORT, () => {
+    console.log(`> Listening on ${PORT}`)
   })
 }
 
