@@ -294,10 +294,10 @@
     "@babel/helper-validator-identifier" "^7.19.1"
     to-fast-properties "^2.0.0"
 
-"@barelyhuman/preact-island-plugins@^0.0.5":
-  version "0.0.5"
-  resolved "https://registry.yarnpkg.com/@barelyhuman/preact-island-plugins/-/preact-island-plugins-0.0.5.tgz#98bcb23952cde98fdf2a0dc65e70126c30e27386"
-  integrity sha512-XE4gb3SunwaQK+zzkVkwg8fmUYzs5p5Hje2MRsR/NvKcAB6uNxNdLi3biVsrSgAoH0wQbNDuSwGidMd5RqiLTg==
+"@barelyhuman/preact-island-plugins@^0.0.6":
+  version "0.0.6"
+  resolved "https://registry.yarnpkg.com/@barelyhuman/preact-island-plugins/-/preact-island-plugins-0.0.6.tgz#06d81124ce19d768094b137a5fbea8405cb4b3e4"
+  integrity sha512-OXboRkrtcF6G6kvAR3uHOS2KYyt40KP8opkbxcd2+bPjkiVdTsZuVYLV841wVRpfBUXurtWc1ymEO2UbfLkQ+A==
   dependencies:
     "@babel/core" "^7.21.3"
     "@babel/generator" "^7.21.1"

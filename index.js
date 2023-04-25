@@ -24,14 +24,7 @@ const plugRegister = []
 main()
 
 async function main() {
-  fs.existsSync(path.join(islandDirectory, '.client')) &&
-    (await fsPromises.rmdir(path.join(islandDirectory, '.client'), {
-      recursive: true,
-    }))
-  fs.existsSync(path.join(islandDirectory, '.generated')) &&
-    (await fsPromises.rmdir(path.join(islandDirectory, '.generated'), {
-      recursive: true,
-    }))
+  cleanup()
 
   plugins.forEach(e => {
     const plug = {}
@@ -66,8 +59,21 @@ async function main() {
   app.use('/public', express.static(path.join(islandDirectory, '.client')))
 
   app.listen(3000, () => {
-    console.log("we're up on 3000")
+    console.log('> Listening on 3000')
   })
+}
+
+async function cleanup() {
+  const generatedClientDir = path.join(islandDirectory, '.client')
+  const generatedDir = path.join(islandDirectory, '.generated')
+  fs.existsSync(generatedClientDir) &&
+    (await fsPromises.rm(generatedClientDir, {
+      recursive: true,
+    }))
+  fs.existsSync(generatedDir) &&
+    (await fsPromises.rm(generatedDir, {
+      recursive: true,
+    }))
 }
 
 function renderer(comp) {
