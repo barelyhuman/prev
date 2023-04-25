@@ -24,12 +24,14 @@ const plugRegister = []
 main()
 
 async function main() {
-  await fsPromises.rmdir(path.join(islandDirectory, '.client'), {
-    recursive: true,
-  })
-  await fsPromises.rmdir(path.join(islandDirectory, '.generated'), {
-    recursive: true,
-  })
+  fs.existsSync(path.join(islandDirectory, '.client')) &&
+    (await fsPromises.rmdir(path.join(islandDirectory, '.client'), {
+      recursive: true,
+    }))
+  fs.existsSync(path.join(islandDirectory, '.generated')) &&
+    (await fsPromises.rmdir(path.join(islandDirectory, '.generated'), {
+      recursive: true,
+    }))
 
   plugins.forEach(e => {
     const plug = {}
