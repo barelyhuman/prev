@@ -6,6 +6,7 @@ export function get(req, res) {
     <BaseLayout title="Security">
       <Navigation />
       <h1 class="font-semibold">Security</h1>
+      <p>Hello</p>
     </BaseLayout>
   )
 }
