@@ -17,31 +17,24 @@ export default async function kernel({
   const app = express()
   const router = new express.Router()
 
-  const routeRegisterSeq = await entries
-    .filter(x => x.startsWith(path.resolve(sourceDir, 'pages')))
-    .map(x => {
-      return x.replace(sourceDir, baseDir)
-    })
-    .reduce((acc, x) => {
-      if (isDynamicKey(x, baseDir)) {
-        acc.push(x)
-      } else {
-        acc.unshift(x)
-      }
-      return acc
-    }, [])
-    .map(registerKey => {
-      return () =>
-        registerRoute(router, registerKey, baseDir, plugRegister, {
-          isDev,
-          liveServerPort,
-        })
-    })
+  const routeRegisterSeq = []
 
-  // Serially register the routes
-  await routeRegisterSeq.reduce((acc, item) => {
-    return acc.then(_ => item())
-  }, Promise.resolve())
+  for (const x of entries) {
+    if (!x.startsWith(path.resolve(sourceDir, 'pages'))) continue
+    const _x = x.replace(sourceDir, baseDir)
+    if (isDynamicKey(_x, baseDir)) {
+      routeRegisterSeq.push(_x)
+    } else {
+      routeRegisterSeq.unshift(_x)
+    }
+  }
+
+  for (const registerKey of routeRegisterSeq) {
+    await registerRoute(router, registerKey, baseDir, plugRegister, {
+      isDev,
+      liveServerPort,
+    })
+  }
 
   app.use(router)
   app.use('/public', express.static(path.join(baseDir, '.client')))
