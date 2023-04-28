@@ -42,7 +42,7 @@ const buildContext = {
   set context(ctx) {
     this.ctx = ctx
   },
-  async rebuild() {
+  async build() {
     return Object.entries(this.ctx).reduce(async (acc, [k, v]) => {
       return acc
         .then(() => v)
@@ -71,6 +71,7 @@ async function main() {
 
   const entries = await getEntries()
   await builder(islandDirectory, entries)
+  await buildContext.build()
   await initKernel(entries)
 }
 
@@ -272,7 +273,7 @@ async function queueRestart() {
       })
     })
   )
-  await buildContext.rebuild()
+  await buildContext.build()
   await initKernel(await getEntries())
   await liveReloadServer.reload()
 }
