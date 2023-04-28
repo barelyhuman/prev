@@ -8,6 +8,8 @@ const PORT = process.env.PORT || 3000
 
 export default async function kernel({
   entries,
+  isDev,
+  liveServerPort,
   plugRegister,
   baseDir,
   sourceDir,
@@ -16,6 +18,7 @@ export default async function kernel({
   const router = new express.Router()
 
   const routeRegisterSeq = await entries
+    .filter(x => x.startsWith(path.resolve(sourceDir, 'pages')))
     .map(x => {
       return x.replace(sourceDir, baseDir)
     })
@@ -28,7 +31,11 @@ export default async function kernel({
       return acc
     }, [])
     .map(registerKey => {
-      return () => registerRoute(router, registerKey, baseDir, plugRegister)
+      return () =>
+        registerRoute(router, registerKey, baseDir, plugRegister, {
+          isDev,
+          liveServerPort,
+        })
     })
 
   // Serially register the routes
@@ -39,13 +46,21 @@ export default async function kernel({
   app.use(router)
   app.use('/public', express.static(path.join(baseDir, '.client')))
 
-  app.listen(PORT, () => {
+  const server = app.listen(PORT, () => {
     console.log(`> Listening on ${PORT}`)
   })
+
+  return server
 }
 
-async function registerRoute(router, registerKey, outDir, plugRegister) {
-  let mod = await import(path.resolve(registerKey))
+async function registerRoute(
+  router,
+  registerKey,
+  outDir,
+  plugRegister,
+  { isDev, liveServerPort } = {}
+) {
+  let mod = await import(path.resolve(registerKey) + `?update=${Date.now()}`)
   mod = mod.default || mod
   const replacementRegex = new RegExp(`^${outDir}\/pages`)
   if (!replacementRegex.test(registerKey)) {
@@ -74,7 +89,7 @@ async function registerRoute(router, registerKey, outDir, plugRegister) {
           return res.end()
         }
         res.setHeader('content-type', 'text/html')
-        res.write(renderer(result, plugRegister))
+        res.write(renderer(result, plugRegister, { isDev, liveServerPort }))
         return res.end()
       })
       continue
@@ -93,7 +108,7 @@ function isDynamicKey(registerKey, baseDir) {
   return DYNAMIC_PARAM_START.test(routeFor)
 }
 
-function renderer(comp, plugRegister) {
+function renderer(comp, plugRegister, { isDev, liveServerPort } = {}) {
   const html = preactRenderToString(comp)
   const htmlTree = plugRegister.reduce(
     (acc, x) => {
@@ -105,11 +120,32 @@ function renderer(comp, plugRegister) {
     }
   )
 
+  const liveReloadSourceScript = `
+    <script>
+      const es = new EventSource('http://localhost:${liveServerPort}/live')
+      
+      
+      es.onopen = () => {
+        console.log('Connected to prev')
+      }
+
+      es.onmessage = () => {
+        fetch(location.href)
+          .then((x => x.text()))
+          .then(d => {
+            var div = document.createElement('div')
+            document.body.innerHTML = d.trim()
+          })
+      }
+    </script>
+  `
+
   return `
     <!DOCTYPE html>
     <html>
       ${htmlTree.head.join('\n')}
       ${htmlTree.body.join('\n')}
+      ${isDev ? liveReloadSourceScript : ''}
     </html>
   `
 }
