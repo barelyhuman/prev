@@ -26,6 +26,11 @@ export default function Navigation() {
           Parameter: 2
         </a>
       </li>
+      <li>
+        <a class="text-zinc-400 hover:text-zinc-900" href="/posts/hello-world">
+          MDX Post
+        </a>
+      </li>
     </ul>
   )
 }

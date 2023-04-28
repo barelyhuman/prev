@@ -6,6 +6,10 @@ export function get(req, res) {
     <BaseLayout title={`Parameterised ${req.params.id}`}>
       <Navigation />
       {req.params.id}
+      <p>
+        The above came from the url, changing at realtime, or even faster, based
+        on what's available
+      </p>
     </BaseLayout>
   )
 }
