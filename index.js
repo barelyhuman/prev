@@ -13,9 +13,7 @@ import plugins from './plugins.js'
 import mdx from '@mdx-js/esbuild'
 const require = createRequire(import.meta.url)
 import chokidar from 'chokidar'
-
-global.import = ([path, ...args]) =>
-  global.import(path + '?update=${new Date().getTime()}', ...args)
+import process from 'node:process'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const islandDirectory = '.prev'
@@ -237,9 +235,7 @@ async function watcher() {
 }
 
 async function initKernel(entries) {
-  const kernel = await import(
-    path.resolve(islandDirectory, './kernel.js') + `?update=${Date.now()}`
-  )
+  const kernel = await import(path.resolve(islandDirectory, 'kernel.js'))
 
   log.debug('Starting server')
   const server = await kernel.default({

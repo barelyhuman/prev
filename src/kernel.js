@@ -1,6 +1,9 @@
-import express from 'express'
+import { Hono } from 'hono'
+import { serve } from '@hono/node-server'
+import process from 'node:process'
 import path from 'node:path'
 import preactRenderToString from 'preact-render-to-string'
+import { serveStatic } from '@hono/node-server/serve-static'
 
 const DYNAMIC_PARAM_START = /\/\+/g
 const ENDS_WITH_EXT = /\.(jsx?|tsx?)$/
@@ -14,9 +17,7 @@ export default async function kernel({
   baseDir,
   sourceDir,
 }) {
-  const app = express()
-  const router = new express.Router()
-
+  const app = new Hono()
   const routeRegisterSeq = []
 
   for (const x of entries) {
@@ -30,18 +31,31 @@ export default async function kernel({
   }
 
   for (const registerKey of routeRegisterSeq) {
-    await registerRoute(router, registerKey, baseDir, plugRegister, {
+    await registerRoute(app, registerKey, baseDir, plugRegister, {
       isDev,
       liveServerPort,
     })
   }
 
-  app.use(router)
-  app.use('/public', express.static(path.join(baseDir, '.client')))
+  app.get(
+    '/public/*',
+    serveStatic({
+      root: path.relative('.', path.resolve(path.join(baseDir, '.client'))),
+      rewriteRequestPath: p => {
+        return p.replace('/public/', '/')
+      },
+    })
+  )
 
-  const server = app.listen(PORT, () => {
-    console.log(`> Listening on ${PORT}`)
-  })
+  const server = serve(
+    {
+      fetch: app.fetch,
+      port: PORT,
+    },
+    info => {
+      console.log(`Listening on http://localhost:${info.port}`)
+    }
+  )
 
   return server
 }
@@ -68,27 +82,30 @@ async function registerRoute(
   }
 
   if (/\/index\/?/.test(routeFor)) {
-    routeFor = routeFor.replace(/\/index\/?/, '/')
+    routeFor = routeFor.replace(/\/index\/?/, '')
+    if (routeFor.length === 0) {
+      routeFor = '/'
+    }
   }
 
-  const routeDef = router.route(routeFor)
   const allowedKeys = ['get', 'post', 'delete']
 
   for (const httpMethod of allowedKeys) {
     if (httpMethod === 'get') {
-      routeDef.get(async (req, res) => {
-        const result = await mod.get(req, res)
+      router.get(routeFor, async ctx => {
+        const result = await mod.get(ctx)
         if (!result) {
-          return res.end()
+          return
         }
-        res.setHeader('content-type', 'text/html')
-        res.write(renderer(result, plugRegister, { isDev, liveServerPort }))
-        return res.end()
+        ctx.header('content-type', 'text/html')
+        return ctx.html(
+          renderer(result, plugRegister, { isDev, liveServerPort })
+        )
       })
       continue
     }
     if (mod[httpMethod]) {
-      routeDef[httpMethod](mod[httpMethod])
+      router[httpMethod](routeFor, mod[httpMethod])
     }
   }
 }
@@ -114,20 +131,29 @@ function renderer(comp, plugRegister, { isDev, liveServerPort } = {}) {
   )
 
   const liveReloadSourceScript = `
-    <script>
+    <script async type="module">
+      import { DiffDOM } from 'https://esm.sh/diff-dom@5.0.4'
+
       const es = new EventSource('http://localhost:${liveServerPort}/live')
-      
-      
+
       es.onopen = () => {
         console.log('Connected to prev')
       }
 
       es.onmessage = () => {
         fetch(location.href)
-          .then((x => x.text()))
+          .then(x => x.text())
           .then(d => {
-            var div = document.createElement('div')
-            document.body.innerHTML = d.trim()
+            var parser = new DOMParser()
+            const doc = parser.parseFromString(d.trim(), 'text/html')
+            const newBody = doc.querySelector('body')
+            const newHead = doc.querySelector('head')
+
+            const dd = new DiffDOM()
+            const diff = dd.diff(document.body, newBody)
+            const diffHead = dd.diff(document.head, newHead)
+            dd.apply(document.body, diff)
+            dd.apply(document.head, diffHead)
           })
       }
     </script>
