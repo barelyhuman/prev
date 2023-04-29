@@ -1,6 +1,6 @@
 # prev
 
-> *Pre*act *V*erbose
+> *Pre*act *v*
 
 ## Features
 
