@@ -1,9 +1,10 @@
-import { Hono } from 'hono'
 import { serve } from '@hono/node-server'
-import process from 'node:process'
-import path from 'node:path'
-import preactRenderToString from 'preact-render-to-string'
 import { serveStatic } from '@hono/node-server/serve-static'
+import { Hono } from 'hono'
+import path from 'node:path'
+import process from 'node:process'
+import preactRenderToString from 'preact-render-to-string'
+import * as esbuild from 'esbuild'
 
 const DYNAMIC_PARAM_START = /\/\+/g
 const ENDS_WITH_EXT = /\.(jsx?|tsx?)$/
@@ -15,6 +16,7 @@ export default async function kernel({
   liveServerPort,
   plugRegister,
   baseDir,
+  clientDirectory,
   sourceDir,
 }) {
   const app = new Hono()
@@ -33,6 +35,7 @@ export default async function kernel({
   for (const registerKey of routeRegisterSeq) {
     await registerRoute(app, registerKey, baseDir, plugRegister, {
       isDev,
+      clientDirectory,
       liveServerPort,
     })
   }
@@ -40,7 +43,10 @@ export default async function kernel({
   app.get(
     '/public/*',
     serveStatic({
-      root: path.relative('.', path.resolve(path.join(baseDir, '.client'))),
+      root: path.relative(
+        '.',
+        path.resolve(path.join(baseDir, clientDirectory))
+      ),
       rewriteRequestPath: p => {
         return p.replace('/public/', '/')
       },
@@ -65,7 +71,7 @@ async function registerRoute(
   registerKey,
   outDir,
   plugRegister,
-  { isDev, liveServerPort } = {}
+  { clientDirectory, isDev, liveServerPort } = {}
 ) {
   let mod = await import(path.resolve(registerKey) + `?update=${Date.now()}`)
   mod = mod.default || mod
@@ -99,7 +105,12 @@ async function registerRoute(
         }
         ctx.header('content-type', 'text/html')
         return ctx.html(
-          renderer(result, plugRegister, { isDev, liveServerPort })
+          await renderer(result, plugRegister, {
+            outDir,
+            isDev,
+            liveServerPort,
+            clientDirectory,
+          })
         )
       })
       continue
@@ -118,7 +129,11 @@ function isDynamicKey(registerKey, baseDir) {
   return DYNAMIC_PARAM_START.test(routeFor)
 }
 
-function renderer(comp, plugRegister, { isDev, liveServerPort } = {}) {
+async function renderer(
+  comp,
+  plugRegister,
+  { isDev, outDir, liveServerPort, clientDirectory } = {}
+) {
   const html = preactRenderToString(comp)
   const htmlTree = plugRegister.reduce(
     (acc, x) => {
@@ -130,11 +145,37 @@ function renderer(comp, plugRegister, { isDev, liveServerPort } = {}) {
     }
   )
 
-  const liveReloadSourceScript = `
-    <script async type="module">
-      import { DiffDOM } from 'https://esm.sh/diff-dom@5.0.4'
+  await esbuild.build({
+    stdin: {
+      contents: getInjectableLiveSource(liveServerPort),
+      loader: 'ts',
+      resolveDir: './',
+    },
+    platform: 'browser',
+    outfile: `${path.join(outDir, clientDirectory, 'live-reload.prev.js')}`,
+    bundle: true,
+    format: 'esm',
+  })
 
-      const es = new EventSource('http://localhost:${liveServerPort}/live')
+  const liveReloadSourceScript = `
+    <script src="/public/live-reload.prev.js"></script>
+  `
+
+  return `
+    <!DOCTYPE html>
+    <html>
+      ${htmlTree.head.join('\n')}
+      ${htmlTree.body.join('\n')}
+      ${isDev ? liveReloadSourceScript : ''}
+    </html>
+  `
+}
+
+function getInjectableLiveSource(serverPort) {
+  return `
+      import { DiffDOM } from 'diff-dom'
+
+      const es = new EventSource('http://localhost:${serverPort}/live')
 
       es.onopen = () => {
         console.log('Connected to prev')
@@ -156,15 +197,5 @@ function renderer(comp, plugRegister, { isDev, liveServerPort } = {}) {
             dd.apply(document.head, diffHead)
           })
       }
-    </script>
-  `
-
-  return `
-    <!DOCTYPE html>
-    <html>
-      ${htmlTree.head.join('\n')}
-      ${htmlTree.body.join('\n')}
-      ${isDev ? liveReloadSourceScript : ''}
-    </html>
   `
 }
