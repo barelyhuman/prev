@@ -9,8 +9,8 @@ const components = {
   h1,
 }
 
-export async function get(req, res) {
-  const postName = req.params.postId
+export async function get(ctx) {
+  const postName = ctx.req.param('postId')
   const mod = await import(`../../content/${postName}.js?update=${Date.now()}`)
   const Component = mod.default
   return (

@@ -13,12 +13,11 @@ import plugins from './plugins.js'
 import mdx from '@mdx-js/esbuild'
 const require = createRequire(import.meta.url)
 import chokidar from 'chokidar'
-
-global.import = ([path, ...args]) =>
-  global.import(path + '?update=${new Date().getTime()}', ...args)
+import process from 'node:process'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const islandDirectory = '.prev'
+const clientDirectory = '.client'
 const plugRegister = []
 const isDev = process.argv.includes('--dev')
 const LIVE_SERVER_PORT = process.env.LIVE_SERVER_PORT || 1234
@@ -77,7 +76,7 @@ async function main() {
 
 async function cleanup() {
   try {
-    const generatedClientDir = path.join(islandDirectory, '.client')
+    const generatedClientDir = path.join(islandDirectory, clientDirectory)
     const generatedDir = path.join(islandDirectory, '.generated')
 
     fs.existsSync(generatedClientDir) &&
@@ -118,7 +117,7 @@ async function builder(baseDir, entries) {
         }
       )
       await esbuild.build(
-        getClientConfig(generatedEntries, path.join(baseDir, '.client'))
+        getClientConfig(generatedEntries, path.join(baseDir, clientDirectory))
       )
     },
   }
@@ -237,9 +236,7 @@ async function watcher() {
 }
 
 async function initKernel(entries) {
-  const kernel = await import(
-    path.resolve(islandDirectory, './kernel.js') + `?update=${Date.now()}`
-  )
+  const kernel = await import(path.resolve(islandDirectory, 'kernel.js'))
 
   log.debug('Starting server')
   const server = await kernel.default({
@@ -247,6 +244,7 @@ async function initKernel(entries) {
     isDev,
     liveServerPort: LIVE_SERVER_PORT,
     plugRegister,
+    clientDirectory: clientDirectory,
     baseDir: path.resolve(__dirname, islandDirectory),
     sourceDir: path.resolve(__dirname, './src'),
   })

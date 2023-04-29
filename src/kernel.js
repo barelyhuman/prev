@@ -1,6 +1,10 @@
-import express from 'express'
+import { serve } from '@hono/node-server'
+import { serveStatic } from '@hono/node-server/serve-static'
+import { Hono } from 'hono'
 import path from 'node:path'
+import process from 'node:process'
 import preactRenderToString from 'preact-render-to-string'
+import * as esbuild from 'esbuild'
 
 const DYNAMIC_PARAM_START = /\/\+/g
 const ENDS_WITH_EXT = /\.(jsx?|tsx?)$/
@@ -12,11 +16,10 @@ export default async function kernel({
   liveServerPort,
   plugRegister,
   baseDir,
+  clientDirectory,
   sourceDir,
 }) {
-  const app = express()
-  const router = new express.Router()
-
+  const app = new Hono()
   const routeRegisterSeq = []
 
   for (const x of entries) {
@@ -30,18 +33,35 @@ export default async function kernel({
   }
 
   for (const registerKey of routeRegisterSeq) {
-    await registerRoute(router, registerKey, baseDir, plugRegister, {
+    await registerRoute(app, registerKey, baseDir, plugRegister, {
       isDev,
+      clientDirectory,
       liveServerPort,
     })
   }
 
-  app.use(router)
-  app.use('/public', express.static(path.join(baseDir, '.client')))
+  app.get(
+    '/public/*',
+    serveStatic({
+      root: path.relative(
+        '.',
+        path.resolve(path.join(baseDir, clientDirectory))
+      ),
+      rewriteRequestPath: p => {
+        return p.replace('/public/', '/')
+      },
+    })
+  )
 
-  const server = app.listen(PORT, () => {
-    console.log(`> Listening on ${PORT}`)
-  })
+  const server = serve(
+    {
+      fetch: app.fetch,
+      port: PORT,
+    },
+    info => {
+      console.log(`Listening on http://localhost:${info.port}`)
+    }
+  )
 
   return server
 }
@@ -51,7 +71,7 @@ async function registerRoute(
   registerKey,
   outDir,
   plugRegister,
-  { isDev, liveServerPort } = {}
+  { clientDirectory, isDev, liveServerPort } = {}
 ) {
   let mod = await import(path.resolve(registerKey) + `?update=${Date.now()}`)
   mod = mod.default || mod
@@ -68,27 +88,35 @@ async function registerRoute(
   }
 
   if (/\/index\/?/.test(routeFor)) {
-    routeFor = routeFor.replace(/\/index\/?/, '/')
+    routeFor = routeFor.replace(/\/index\/?/, '')
+    if (routeFor.length === 0) {
+      routeFor = '/'
+    }
   }
 
-  const routeDef = router.route(routeFor)
   const allowedKeys = ['get', 'post', 'delete']
 
   for (const httpMethod of allowedKeys) {
     if (httpMethod === 'get') {
-      routeDef.get(async (req, res) => {
-        const result = await mod.get(req, res)
+      router.get(routeFor, async ctx => {
+        const result = await mod.get(ctx)
         if (!result) {
-          return res.end()
+          return
         }
-        res.setHeader('content-type', 'text/html')
-        res.write(renderer(result, plugRegister, { isDev, liveServerPort }))
-        return res.end()
+        ctx.header('content-type', 'text/html')
+        return ctx.html(
+          await renderer(result, plugRegister, {
+            outDir,
+            isDev,
+            liveServerPort,
+            clientDirectory,
+          })
+        )
       })
       continue
     }
     if (mod[httpMethod]) {
-      routeDef[httpMethod](mod[httpMethod])
+      router[httpMethod](routeFor, mod[httpMethod])
     }
   }
 }
@@ -101,7 +129,11 @@ function isDynamicKey(registerKey, baseDir) {
   return DYNAMIC_PARAM_START.test(routeFor)
 }
 
-function renderer(comp, plugRegister, { isDev, liveServerPort } = {}) {
+async function renderer(
+  comp,
+  plugRegister,
+  { isDev, outDir, liveServerPort, clientDirectory } = {}
+) {
   const html = preactRenderToString(comp)
   const htmlTree = plugRegister.reduce(
     (acc, x) => {
@@ -113,24 +145,20 @@ function renderer(comp, plugRegister, { isDev, liveServerPort } = {}) {
     }
   )
 
-  const liveReloadSourceScript = `
-    <script>
-      const es = new EventSource('http://localhost:${liveServerPort}/live')
-      
-      
-      es.onopen = () => {
-        console.log('Connected to prev')
-      }
+  await esbuild.build({
+    stdin: {
+      contents: getInjectableLiveSource(liveServerPort),
+      loader: 'ts',
+      resolveDir: './',
+    },
+    platform: 'browser',
+    outfile: `${path.join(outDir, clientDirectory, 'live-reload.prev.js')}`,
+    bundle: true,
+    format: 'esm',
+  })
 
-      es.onmessage = () => {
-        fetch(location.href)
-          .then((x => x.text()))
-          .then(d => {
-            var div = document.createElement('div')
-            document.body.innerHTML = d.trim()
-          })
-      }
-    </script>
+  const liveReloadSourceScript = `
+    <script src="/public/live-reload.prev.js"></script>
   `
 
   return `
@@ -140,5 +168,34 @@ function renderer(comp, plugRegister, { isDev, liveServerPort } = {}) {
       ${htmlTree.body.join('\n')}
       ${isDev ? liveReloadSourceScript : ''}
     </html>
+  `
+}
+
+function getInjectableLiveSource(serverPort) {
+  return `
+      import { DiffDOM } from 'diff-dom'
+
+      const es = new EventSource('http://localhost:${serverPort}/live')
+
+      es.onopen = () => {
+        console.log('Connected to prev')
+      }
+
+      es.onmessage = () => {
+        fetch(location.href)
+          .then(x => x.text())
+          .then(d => {
+            var parser = new DOMParser()
+            const doc = parser.parseFromString(d.trim(), 'text/html')
+            const newBody = doc.querySelector('body')
+            const newHead = doc.querySelector('head')
+
+            const dd = new DiffDOM()
+            const diff = dd.diff(document.body, newBody)
+            const diffHead = dd.diff(document.head, newHead)
+            dd.apply(document.body, diff)
+            dd.apply(document.head, diffHead)
+          })
+      }
   `
 }
