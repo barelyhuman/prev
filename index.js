@@ -14,6 +14,7 @@ import mdx from '@mdx-js/esbuild'
 const require = createRequire(import.meta.url)
 import chokidar from 'chokidar'
 import process from 'node:process'
+import coffeescript from 'esbuild-coffeescript'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const islandDirectory = '.prev'
@@ -178,6 +179,7 @@ function getServerConfig(entries, outDir) {
     target: 'node14',
     bundle: true,
     plugins: [
+      coffeescript(),
       mdx({
         jsxImportSource: 'preact',
       }),
