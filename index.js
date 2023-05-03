@@ -11,10 +11,11 @@ import { parse, print } from 'recast'
 import glob from 'tiny-glob'
 import plugins from './plugins.js'
 import mdx from '@mdx-js/esbuild'
-const require = createRequire(import.meta.url)
 import chokidar from 'chokidar'
 import process from 'node:process'
 import coffeescript from 'esbuild-coffeescript'
+
+const require = createRequire(import.meta.url)
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const islandDirectory = '.prev'

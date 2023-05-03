@@ -25,11 +25,8 @@ export default async function kernel({
   for (const x of entries) {
     if (!x.startsWith(path.resolve(sourceDir, 'pages'))) continue
     const _x = x.replace(sourceDir, baseDir)
-    if (isDynamicKey(_x, baseDir)) {
-      routeRegisterSeq.push(_x)
-    } else {
-      routeRegisterSeq.unshift(_x)
-    }
+    if (isDynamicKey(_x, baseDir)) routeRegisterSeq.push(_x)
+    else routeRegisterSeq.unshift(_x)
   }
 
   for (const registerKey of routeRegisterSeq) {
@@ -76,33 +73,34 @@ async function registerRoute(
   let mod = await import(path.resolve(registerKey) + `?update=${Date.now()}`)
   mod = mod.default || mod
   const replacementRegex = new RegExp(`^${outDir}\/pages`)
-  if (!replacementRegex.test(registerKey)) {
-    return
-  }
+  if (!replacementRegex.test(registerKey)) return
+
   let routeFor = registerKey
     .replace(replacementRegex, '')
     .replace(ENDS_WITH_EXT, '')
 
-  if (DYNAMIC_PARAM_START.test(routeFor)) {
+  if (DYNAMIC_PARAM_START.test(routeFor))
     routeFor = routeFor.replace(DYNAMIC_PARAM_START, '/:')
-  }
 
   if (/\/index\/?/.test(routeFor)) {
     routeFor = routeFor.replace(/\/index\/?/, '')
-    if (routeFor.length === 0) {
-      routeFor = '/'
-    }
+    if (routeFor.length === 0) routeFor = '/'
   }
 
   const allowedKeys = ['get', 'post', 'delete']
 
   for (const httpMethod of allowedKeys) {
+    if (!mod[httpMethod]) continue
+
     if (httpMethod === 'get') {
       router.get(routeFor, async ctx => {
         const result = await mod.get(ctx)
-        if (!result) {
-          return
-        }
+        if (!result) return
+
+        // Handle normal Hono Responses
+        if (result instanceof Response) return result
+
+        // Handle Preact component tree
         ctx.header('content-type', 'text/html')
         return ctx.html(
           await renderer(result, plugRegister, {
@@ -115,9 +113,7 @@ async function registerRoute(
       })
       continue
     }
-    if (mod[httpMethod]) {
-      router[httpMethod](routeFor, mod[httpMethod])
-    }
+    router[httpMethod](routeFor, mod[httpMethod])
   }
 }
 
