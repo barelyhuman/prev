@@ -10,7 +10,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parse, print } from 'recast'
 import glob from 'tiny-glob'
-import plugins from './plugins.js'
+
 import mdx from '@mdx-js/esbuild'
 import chokidar from 'chokidar'
 import process from 'node:process'
@@ -18,6 +18,7 @@ import coffeescript from 'esbuild-coffeescript'
 import { config } from '../prev.config.js'
 
 const require = createRequire(import.meta.url)
+const plugins = await config.getPlugins()
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const rootDirectory = path.join(__dirname, '..')

@@ -13,10 +13,15 @@
   "prettier": "@barelyhuman/prettier-config",
   "dependencies": {
     "@barelyhuman/prev": "workspace:*",
-    "hoofd": "^1.5.2",
     "preact": "^10.13.2",
     "goober": "^2.1.13",
-    "diff-dom": "^5.0.4"
+    "diff-dom": "^5.0.4",
+    "@mdx-js/esbuild": "^2.3.0",
+    "@mdx-js/preact": "^2.3.0",
+    "@twind/core": "^1.1.3",
+    "@twind/preset-tailwind": "^1.1.4",
+    "hoofd": "^1.5.2",
+    "recast": "^0.22.0"
   },
   "devDependencies": {
     "@barelyhuman/prettier-config": "^1.1.0",
