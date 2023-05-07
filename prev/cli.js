@@ -15,13 +15,15 @@ import mdx from '@mdx-js/esbuild'
 import chokidar from 'chokidar'
 import process from 'node:process'
 import coffeescript from 'esbuild-coffeescript'
-import { config } from '../prev.config.js'
+import { config as userConfig } from '../prev.config.js'
+
+const config = normalizeConfig(userConfig)
 
 const require = createRequire(import.meta.url)
 const plugins = await config.getPlugins()
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const rootDirectory = path.join(__dirname, '..')
+var rootDirectory = getRootDirectory()
 const islandDirectory = path.resolve(rootDirectory, 'dist')
 const clientDirectory = '.client'
 const plugRegister = []
@@ -261,6 +263,27 @@ async function initKernel(entries) {
     sourceDir: path.resolve(rootDirectory, './src'),
   })
   servers.set(Date.now(), server)
+}
+
+function getRootDirectory() {
+  const posArgs = process.argv.slice(2).filter(x => !x.startsWith('--'))
+  if (posArgs.length > 0) {
+    return path.resolve(posArgs[0])
+  }
+  return path.join(__dirname, '..')
+}
+
+function normalizeConfig(config) {
+  return Object.assign(
+    {
+      getKernel: async () => {
+        const mod = await import('./kernel/index.js')
+        return mod.createHonoKernel
+      },
+      getPlugins: async () => [],
+    },
+    config
+  )
 }
 
 async function queueRestart() {
