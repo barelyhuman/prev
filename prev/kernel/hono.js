@@ -10,7 +10,7 @@ const DYNAMIC_PARAM_START = /\/\+/g
 const ENDS_WITH_EXT = /\.(jsx?|tsx?)$/
 const PORT = process.env.PORT || 3000
 
-export default async function kernel({
+export async function kernel({
   entries,
   isDev,
   liveServerPort,
@@ -92,28 +92,29 @@ async function registerRoute(
   for (const httpMethod of allowedKeys) {
     if (!mod[httpMethod]) continue
 
-    if (httpMethod === 'get') {
-      router.get(routeFor, async ctx => {
-        const result = await mod.get(ctx)
-        if (!result) return
-
-        // Handle normal Hono Responses
-        if (result instanceof Response) return result
-
-        // Handle Preact component tree
-        ctx.header('content-type', 'text/html')
-        return ctx.html(
-          await renderer(result, plugRegister, {
-            outDir,
-            isDev,
-            liveServerPort,
-            clientDirectory,
-          })
-        )
-      })
+    if (httpMethod !== 'get') {
+      router[httpMethod](routeFor, mod[httpMethod])
       continue
     }
-    router[httpMethod](routeFor, mod[httpMethod])
+
+    router.get(routeFor, async ctx => {
+      const result = await mod.get(ctx)
+      if (!result) return
+
+      // Handle normal Hono Responses
+      if (result instanceof Response) return result
+
+      // Handle Preact component tree
+      ctx.header('content-type', 'text/html')
+      return ctx.html(
+        await renderer(result, plugRegister, {
+          outDir,
+          isDev,
+          liveServerPort,
+          clientDirectory,
+        })
+      )
+    })
   }
 }
 

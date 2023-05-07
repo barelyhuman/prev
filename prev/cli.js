@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import preactIslandPlugin from '@barelyhuman/preact-island-plugins/esbuild'
 import * as esbuild from 'esbuild'
 import http from 'node:http'
@@ -14,11 +15,13 @@ import mdx from '@mdx-js/esbuild'
 import chokidar from 'chokidar'
 import process from 'node:process'
 import coffeescript from 'esbuild-coffeescript'
+import { config } from '../prev.config.js'
 
 const require = createRequire(import.meta.url)
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const islandDirectory = '.prev'
+const rootDirectory = path.join(__dirname, '..')
+const islandDirectory = path.resolve(rootDirectory, 'dist')
 const clientDirectory = '.client'
 const plugRegister = []
 const isDev = process.argv.includes('--dev')
@@ -101,6 +104,7 @@ async function cleanup() {
 async function getEntries() {
   const entries = await glob('./src/**/*.{js,ts,jsx,tsx,mdx}', {
     absolute: true,
+    cwd: rootDirectory,
   })
   return entries
 }
@@ -116,6 +120,7 @@ async function builder(baseDir, entries) {
         `${baseDir}/.generated/**/*.client-is*.js`,
         {
           absolute: true,
+          cwd: rootDirectory,
         }
       )
       await esbuild.build(
@@ -231,25 +236,28 @@ const liveReloadServer = {
 
 async function watcher() {
   log.debug('starting watch')
-  chokidar.watch('./src').on('change', async (event, path) => {
-    await queueRestart()
-  })
+  chokidar
+    .watch('./src', {
+      cwd: rootDirectory,
+    })
+    .on('change', async (event, path) => {
+      await queueRestart()
+    })
   await main()
   liveReloadServer.setup()
 }
 
 async function initKernel(entries) {
-  const kernel = await import(path.resolve(islandDirectory, 'kernel.js'))
-
   log.debug('Starting server')
-  const server = await kernel.default({
+  const kernel = await config.getKernel()
+  const server = await kernel({
     entries,
     isDev,
     liveServerPort: LIVE_SERVER_PORT,
     plugRegister,
     clientDirectory: clientDirectory,
     baseDir: path.resolve(__dirname, islandDirectory),
-    sourceDir: path.resolve(__dirname, './src'),
+    sourceDir: path.resolve(rootDirectory, './src'),
   })
   servers.set(Date.now(), server)
 }
