@@ -1,14 +1,41 @@
-import { serve } from '@hono/node-server'
 import { serveStatic } from '@hono/node-server/serve-static'
-import { Hono } from 'hono'
 import path from 'node:path'
 import process from 'node:process'
 import preactRenderToString from 'preact-render-to-string'
+import { Hono } from 'hono'
+import { serve } from '@hono/node-server'
 import * as esbuild from 'esbuild'
 
 const DYNAMIC_PARAM_START = /\/\+/g
 const ENDS_WITH_EXT = /\.(jsx?|tsx?)$/
-const PORT = process.env.PORT || 3000
+const PORT = process.env.PORT || 5000
+
+export class Server {
+  constructor() {
+    this.app = new Hono()
+    this.port = PORT
+  }
+
+  getInstance() {
+    if (!Server.instance) {
+      console.log('creating a new server')
+      Server.instance = serve(
+        {
+          fetch: this.app.fetch,
+          port: PORT,
+        },
+        info => {
+          console.log(`Listening on http://localhost:${info.port}`)
+        }
+      )
+    }
+    return Server.instance
+  }
+
+  static close() {
+    Server.instance = undefined
+  }
+}
 
 export async function kernel({
   entries,
@@ -19,7 +46,8 @@ export async function kernel({
   clientDirectory,
   sourceDir,
 }) {
-  const app = new Hono()
+  const server = new Server()
+
   const routeRegisterSeq = []
 
   for (const x of entries) {
@@ -30,14 +58,14 @@ export async function kernel({
   }
 
   for (const registerKey of routeRegisterSeq) {
-    await registerRoute(app, registerKey, baseDir, plugRegister, {
+    await registerRoute(server.app, registerKey, baseDir, plugRegister, {
       isDev,
       clientDirectory,
       liveServerPort,
     })
   }
 
-  app.get(
+  server.app.get(
     '/public/*',
     serveStatic({
       root: path.relative(
@@ -50,17 +78,7 @@ export async function kernel({
     })
   )
 
-  const server = serve(
-    {
-      fetch: app.fetch,
-      port: PORT,
-    },
-    info => {
-      console.log(`Listening on http://localhost:${info.port}`)
-    }
-  )
-
-  return server
+  return server.getInstance()
 }
 
 async function registerRoute(

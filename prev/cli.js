@@ -31,6 +31,7 @@ const isDev = process.argv.includes('--dev')
 const LIVE_SERVER_PORT = process.env.LIVE_SERVER_PORT || 1234
 
 let servers = new Map()
+let server = {}
 
 const log = {
   debug: msg => {
@@ -253,7 +254,7 @@ async function watcher() {
 async function initKernel(entries) {
   log.debug('Starting server')
   const kernel = await config.getKernel()
-  const server = await kernel({
+  server = await kernel({
     entries,
     isDev,
     liveServerPort: LIVE_SERVER_PORT,
@@ -262,7 +263,6 @@ async function initKernel(entries) {
     baseDir: path.resolve(__dirname, islandDirectory),
     sourceDir: path.resolve(rootDirectory, './src'),
   })
-  servers.set(Date.now(), server)
 }
 
 function getRootDirectory() {
@@ -287,25 +287,21 @@ function normalizeConfig(config) {
 }
 
 async function queueRestart() {
-  await Promise.all(
-    [...servers].map(([id, server]) => {
-      return new Promise(resolve => {
-        server.close(err => {
-          if (err) {
-            if (err.code === 'ERR_SERVER_NOT_RUNNING') {
-              servers.delete(id)
-              resolve()
-              return
-            }
-            console.error(err)
-            throw err
-          }
-          servers.delete(id)
+  const mod = await import('./kernel/index.js')
+  new Promise(resolve => {
+    server.close(err => {
+      if (err) {
+        if (err.code === 'ERR_SERVER_NOT_RUNNING') {
           resolve()
-        })
-      })
+          return
+        }
+        console.error(err)
+        throw err
+      }
+      mod.Server.close()
+      resolve()
     })
-  )
+  })
   await buildContext.build()
   await initKernel(await getEntries())
   await liveReloadServer.reload()
