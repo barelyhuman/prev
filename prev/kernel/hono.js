@@ -5,11 +5,18 @@ import preactRenderToString from 'preact-render-to-string'
 import { Hono } from 'hono'
 import { serve } from '@hono/node-server'
 import * as esbuild from 'esbuild'
+import { fileURLToPath } from 'node:url'
 
 const DYNAMIC_PARAM_START = /\/\+/g
 const ENDS_WITH_EXT = /\.(jsx?|tsx?)$/
 const PORT = process.env.PORT || 5000
-
+var rootDirectory = getRootDirectory()
+const isDev = process.argv.includes('--dev')
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const islandDirectory = path.resolve(rootDirectory, 'dist')
+const clientDirectory = '.client'
+const plugRegister = []
+const LIVE_SERVER_PORT = process.env.LIVE_SERVER_PORT || 1234
 export class Server {
   constructor() {
     this.app = new Hono()
@@ -32,9 +39,45 @@ export class Server {
     return Server.instance
   }
 
-  static close() {
-    Server.instance = undefined
+  static async init(entries) {
+    return await kernel({
+      entries,
+      isDev,
+      liveServerPort: LIVE_SERVER_PORT,
+      plugRegister,
+      clientDirectory: clientDirectory,
+      baseDir: path.resolve(__dirname, islandDirectory),
+      sourceDir: path.resolve(rootDirectory, './src'),
+    })
   }
+
+  static close() {
+    return new Promise(resolve => {
+      if (!Server.instance) {
+        resolve()
+      }
+      Server.instance.close(err => {
+        if (err) {
+          if (err.code === 'ERR_SERVER_NOT_RUNNING') {
+            resolve()
+            return
+          }
+          console.error(err)
+          throw err
+        }
+        Server.instance = undefined
+        resolve()
+      })
+    })
+  }
+}
+
+function getRootDirectory() {
+  const posArgs = process.argv.slice(2).filter(x => !x.startsWith('--'))
+  if (posArgs.length > 0) {
+    return path.resolve(posArgs[0])
+  }
+  return path.join(__dirname, '..')
 }
 
 export async function kernel({

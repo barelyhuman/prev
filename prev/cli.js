@@ -30,9 +30,6 @@ const plugRegister = []
 const isDev = process.argv.includes('--dev')
 const LIVE_SERVER_PORT = process.env.LIVE_SERVER_PORT || 1234
 
-let servers = new Map()
-let server = {}
-
 const log = {
   debug: msg => {
     const action = process.argv.includes('--debug')
@@ -251,20 +248,6 @@ async function watcher() {
   liveReloadServer.setup()
 }
 
-async function initKernel(entries) {
-  log.debug('Starting server')
-  const kernel = await config.getKernel()
-  server = await kernel({
-    entries,
-    isDev,
-    liveServerPort: LIVE_SERVER_PORT,
-    plugRegister,
-    clientDirectory: clientDirectory,
-    baseDir: path.resolve(__dirname, islandDirectory),
-    sourceDir: path.resolve(rootDirectory, './src'),
-  })
-}
-
 function getRootDirectory() {
   const posArgs = process.argv.slice(2).filter(x => !x.startsWith('--'))
   if (posArgs.length > 0) {
@@ -288,22 +271,9 @@ function normalizeConfig(config) {
 
 async function queueRestart() {
   const mod = await import('./kernel/index.js')
-  new Promise(resolve => {
-    server.close(err => {
-      if (err) {
-        if (err.code === 'ERR_SERVER_NOT_RUNNING') {
-          resolve()
-          return
-        }
-        console.error(err)
-        throw err
-      }
-      mod.Server.close()
-      resolve()
-    })
-  })
+  await mod.Server.close()
   await buildContext.build()
-  await initKernel(await getEntries())
+  await mod.Server.init(await getEntries())
   await liveReloadServer.reload()
 }
 
