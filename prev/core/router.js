@@ -46,8 +46,6 @@ export async function readRoutesFromDirectory({ cwd, outDir = 'dist' }) {
 
     for (const httpMethod of allowedKeys) {
       if (!mod[httpMethod]) continue
-
-      console.log({ routeFor })
       defineRoute({
         method: httpMethod,
         url: routeFor,

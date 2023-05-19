@@ -2,7 +2,7 @@ import Navigation from '@/components/navigation.js'
 import BaseLayout from '@/layouts/BaseLayout'
 
 export function get(ctx) {
-  const paramId = ctx.req.param('id')
+  const { id: paramId } = ctx.req.params
   return (
     <BaseLayout title={`Parameterised ${paramId}`}>
       <Navigation />

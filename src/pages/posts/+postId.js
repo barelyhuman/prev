@@ -10,8 +10,8 @@ const components = {
 }
 
 export async function get(ctx) {
-  const postName = ctx.req.param('postId')
-  const mod = await import(`../../content/${postName}.js?update=${Date.now()}`)
+  const { postId } = ctx.req.params
+  const mod = await import(`../../content/${postId}.js?update=${Date.now()}`)
   const Component = mod.default
   return (
     <BaseLayout>

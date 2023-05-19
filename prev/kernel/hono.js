@@ -7,10 +7,52 @@ import * as esbuild from 'esbuild'
 import path from 'node:path'
 import { getRoutes } from '../core/router.js'
 
-// TODO: create an abstraction over HONO to create a new CTX
-// that's common and usable for most cases
-function mapHonoCtxToPrev(ctx) {
-  return ctx
+async function mapHonoCtxToPrev(ctx) {
+  let requestBody = await ctx.req.text()
+  let contentType = ctx.req.header('Content-Type')
+
+  if (contentType) {
+    contentType = contentType.toLowerCase()
+    if (contentType === 'application/json') {
+      requestBody = await ctx.req.json()
+    } else if (
+      contentType === 'multipart/form-data' ||
+      contentType === 'application/x-www-form-urlencoded'
+    ) {
+      requestBody = await c.req.json()
+    }
+  }
+
+  return {
+    req: {
+      url: ctx.req.url,
+      method: ctx.req.method,
+      headers: ctx.req.headers,
+      credentials: ctx.req.credentials,
+      keepalive: ctx.req.keepalive,
+      mode: ctx.req.mode,
+      referrer: ctx.req.referrer,
+      refererPolicy: ctx.req.refererPolicy,
+      params: ctx.req.param(),
+      query: ctx.req.query(),
+      body: requestBody,
+    },
+    res: {
+      header: ctx.header,
+      body: ctx.body,
+      html: ctx.html,
+      json: ctx.json,
+      text: ctx.text,
+      status: ctx.status,
+      redirect: (url, { permanent = false, status } = {}) => {
+        if (status) {
+          return ctx.redirect(url, status)
+        }
+        return ctx.redirect(url, permanent ? 301 : 302)
+      },
+    },
+    rawCtx: ctx,
+  }
 }
 
 const server = {
@@ -90,13 +132,13 @@ export async function kernel({
       const details = routes[method][route]
       if (method === 'get') {
         app[method](details.url, async _ctx => {
-          const ctx = mapHonoCtxToPrev(_ctx)
+          const ctx = await mapHonoCtxToPrev(_ctx)
           const result = await details.handler(ctx)
           if (!result) return
           if (result instanceof Response) return result
 
-          ctx.header('content-type', 'text/html')
-          return ctx.html(
+          ctx.res.header('content-type', 'text/html')
+          return ctx.res.html(
             await renderer(result, plugRegister, {
               isDev,
               outDir: baseDir,
@@ -106,8 +148,8 @@ export async function kernel({
           )
         })
       } else {
-        app[method](details.url, _ctx => {
-          const ctx = mapHonoCtxToPrev(_ctx)
+        app[method](details.url, async _ctx => {
+          const ctx = await mapHonoCtxToPrev(_ctx)
           return details.handler(ctx)
         })
       }
