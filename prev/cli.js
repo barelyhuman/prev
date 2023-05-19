@@ -10,6 +10,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parse, print } from 'recast'
 import glob from 'tiny-glob'
+import { log } from './lib/logger.js'
 
 import mdx from '@mdx-js/esbuild'
 import chokidar from 'chokidar'

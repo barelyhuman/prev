@@ -5,7 +5,7 @@ import preactRenderToString from 'preact-render-to-string'
 import { Hono } from 'hono'
 import { serve } from '@hono/node-server'
 import * as esbuild from 'esbuild'
-import { fileURLToPath } from 'node:url'
+import { log } from '../lib/logger.js'
 
 const DYNAMIC_PARAM_START = /\/\+/g
 const ENDS_WITH_EXT = /\.(jsx?|tsx?)$/
