@@ -31,15 +31,6 @@ const plugRegister = []
 const isDev = process.argv.includes('--dev')
 const LIVE_SERVER_PORT = process.env.LIVE_SERVER_PORT || 1234
 
-const log = {
-  debug: msg => {
-    const action = process.argv.includes('--debug')
-      ? () => console.log(msg)
-      : () => {}
-    action()
-  },
-}
-
 const buildContext = {
   ctx: undefined,
   get context() {
@@ -249,6 +240,20 @@ async function watcher() {
   liveReloadServer.setup()
 }
 
+async function initKernel(entries) {
+  log.debug('Starting server')
+  const kernel = await config.getKernel()
+  await kernel({
+    entries,
+    isDev,
+    liveServerPort: LIVE_SERVER_PORT,
+    plugRegister,
+    clientDirectory: clientDirectory,
+    baseDir: path.resolve(__dirname, islandDirectory),
+    sourceDir: path.resolve(rootDirectory, './src'),
+  })
+}
+
 function getRootDirectory() {
   const posArgs = process.argv.slice(2).filter(x => !x.startsWith('--'))
   if (posArgs.length > 0) {
@@ -271,10 +276,8 @@ function normalizeConfig(config) {
 }
 
 async function queueRestart() {
-  const mod = await import('./kernel/index.js')
-  await mod.Server.close()
   await buildContext.build()
-  await mod.Server.init(await getEntries())
+  await initKernel(await getEntries())
   await liveReloadServer.reload()
 }
 

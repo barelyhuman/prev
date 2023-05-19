@@ -9,54 +9,52 @@ import { log } from '../lib/logger.js'
 
 const DYNAMIC_PARAM_START = /\/\+/g
 const ENDS_WITH_EXT = /\.(jsx?|tsx?)$/
-const PORT = process.env.PORT || 5000
-var rootDirectory = getRootDirectory()
-const isDev = process.argv.includes('--dev')
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const islandDirectory = path.resolve(rootDirectory, 'dist')
-const clientDirectory = '.client'
-const plugRegister = []
-const LIVE_SERVER_PORT = process.env.LIVE_SERVER_PORT || 1234
-export class Server {
-  constructor() {
-    this.app = new Hono()
-    this.port = PORT
-  }
+const PORT = process.env.PORT || 3000
 
-  getInstance() {
-    if (!Server.instance) {
-      console.log('creating a new server')
-      Server.instance = serve(
-        {
-          fetch: this.app.fetch,
-          port: PORT,
-        },
-        info => {
-          console.log(`Listening on http://localhost:${info.port}`)
-        }
-      )
+const server = {
+  activeInstance: undefined,
+  app: undefined,
+  port: PORT,
+
+  /**
+   * @param {object} options
+   * @param {boolean} [options.force=false]
+   * Initialize the server singleton, and create the hono
+   * app instance if it didn't exist.
+   */
+  async init({ force = false }) {
+    if (this.activeInstance && !force) {
+      return
     }
-    return Server.instance
-  }
 
-  static async init(entries) {
-    return await kernel({
-      entries,
-      isDev,
-      liveServerPort: LIVE_SERVER_PORT,
-      plugRegister,
-      clientDirectory: clientDirectory,
-      baseDir: path.resolve(__dirname, islandDirectory),
-      sourceDir: path.resolve(rootDirectory, './src'),
-    })
-  }
+    if (this.activeInstance && force) {
+      log.debug('Force Restarting Server')
+      await this.close()
+    }
 
-  static close() {
+    if (!this.app) {
+      this.app = new Hono()
+    }
+
+    this.activeInstance = serve(
+      {
+        fetch: this.app.fetch,
+        port: this.port,
+      },
+      info => {
+        console.log(`Listening on http://localhost:${info.port}`)
+      }
+    )
+  },
+  close() {
+    const self = this
+
     return new Promise(resolve => {
-      if (!Server.instance) {
+      if (!self.activeInstance) {
+        log.debug('nothing to shut down')
         resolve()
       }
-      Server.instance.close(err => {
+      self.activeInstance.close(err => {
         if (err) {
           if (err.code === 'ERR_SERVER_NOT_RUNNING') {
             resolve()
@@ -65,19 +63,11 @@ export class Server {
           console.error(err)
           throw err
         }
-        Server.instance = undefined
+        self.activeInstance = undefined
         resolve()
       })
     })
-  }
-}
-
-function getRootDirectory() {
-  const posArgs = process.argv.slice(2).filter(x => !x.startsWith('--'))
-  if (posArgs.length > 0) {
-    return path.resolve(posArgs[0])
-  }
-  return path.join(__dirname, '..')
+  },
 }
 
 export async function kernel({
@@ -89,9 +79,9 @@ export async function kernel({
   clientDirectory,
   sourceDir,
 }) {
-  const server = new Server()
-
   const routeRegisterSeq = []
+
+  await server.init({ force: true })
 
   for (const x of entries) {
     if (!x.startsWith(path.resolve(sourceDir, 'pages'))) continue
@@ -121,7 +111,7 @@ export async function kernel({
     })
   )
 
-  return server.getInstance()
+  return server
 }
 
 async function registerRoute(
