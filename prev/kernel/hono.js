@@ -1,20 +1,22 @@
 import { serveStatic } from '@hono/node-server/serve-static'
-import path from 'node:path'
-import process from 'node:process'
 import preactRenderToString from 'preact-render-to-string'
 import { Hono } from 'hono'
 import { serve } from '@hono/node-server'
-import * as esbuild from 'esbuild'
 import { log } from '../lib/logger.js'
+import * as esbuild from 'esbuild'
+import path from 'node:path'
+import { getRoutes } from '../core/router.js'
 
-const DYNAMIC_PARAM_START = /\/\+/g
-const ENDS_WITH_EXT = /\.(jsx?|tsx?)$/
-const PORT = process.env.PORT || 3000
+// TODO: create an abstraction over HONO to create a new CTX
+// that's common and usable for most cases
+function mapHonoCtxToPrev(ctx) {
+  return ctx
+}
 
 const server = {
   activeInstance: undefined,
   app: undefined,
-  port: PORT,
+  port: undefined,
 
   /**
    * @param {object} options
@@ -71,31 +73,45 @@ const server = {
 }
 
 export async function kernel({
-  entries,
   isDev,
+  serverPort,
   liveServerPort,
   plugRegister,
   baseDir,
   clientDirectory,
-  sourceDir,
 }) {
-  const routeRegisterSeq = []
+  const app = new Hono()
+  server.app = app
+  server.port = serverPort || process.env.PORT || 3000
 
-  await server.init({ force: true })
+  const routes = getRoutes()
+  for (const method of Object.keys(routes)) {
+    for (const route of Object.keys(routes[method])) {
+      const details = routes[method][route]
+      if (method === 'get') {
+        app[method](details.url, async _ctx => {
+          const ctx = mapHonoCtxToPrev(_ctx)
+          const result = await details.handler(ctx)
+          if (!result) return
+          if (result instanceof Response) return result
 
-  for (const x of entries) {
-    if (!x.startsWith(path.resolve(sourceDir, 'pages'))) continue
-    const _x = x.replace(sourceDir, baseDir)
-    if (isDynamicKey(_x, baseDir)) routeRegisterSeq.push(_x)
-    else routeRegisterSeq.unshift(_x)
-  }
-
-  for (const registerKey of routeRegisterSeq) {
-    await registerRoute(server.app, registerKey, baseDir, plugRegister, {
-      isDev,
-      clientDirectory,
-      liveServerPort,
-    })
+          ctx.header('content-type', 'text/html')
+          return ctx.html(
+            await renderer(result, plugRegister, {
+              isDev,
+              outDir: baseDir,
+              liveServerPort,
+              clientDirectory,
+            })
+          )
+        })
+      } else {
+        app[method](details.url, _ctx => {
+          const ctx = mapHonoCtxToPrev(_ctx)
+          return details.handler(ctx)
+        })
+      }
+    }
   }
 
   server.app.get(
@@ -111,70 +127,9 @@ export async function kernel({
     })
   )
 
+  await server.init({ force: true })
+
   return server
-}
-
-async function registerRoute(
-  router,
-  registerKey,
-  outDir,
-  plugRegister,
-  { clientDirectory, isDev, liveServerPort } = {}
-) {
-  let mod = await import(path.resolve(registerKey) + `?update=${Date.now()}`)
-  mod = mod.default || mod
-  const replacementRegex = new RegExp(`^${outDir}\/pages`)
-  if (!replacementRegex.test(registerKey)) return
-
-  let routeFor = registerKey
-    .replace(replacementRegex, '')
-    .replace(ENDS_WITH_EXT, '')
-
-  if (DYNAMIC_PARAM_START.test(routeFor))
-    routeFor = routeFor.replace(DYNAMIC_PARAM_START, '/:')
-
-  if (/\/index\/?/.test(routeFor)) {
-    routeFor = routeFor.replace(/\/index\/?/, '')
-    if (routeFor.length === 0) routeFor = '/'
-  }
-
-  const allowedKeys = ['get', 'post', 'delete']
-
-  for (const httpMethod of allowedKeys) {
-    if (!mod[httpMethod]) continue
-
-    if (httpMethod !== 'get') {
-      router[httpMethod](routeFor, mod[httpMethod])
-      continue
-    }
-
-    router.get(routeFor, async ctx => {
-      const result = await mod.get(ctx)
-      if (!result) return
-
-      // Handle normal Hono Responses
-      if (result instanceof Response) return result
-
-      // Handle Preact component tree
-      ctx.header('content-type', 'text/html')
-      return ctx.html(
-        await renderer(result, plugRegister, {
-          outDir,
-          isDev,
-          liveServerPort,
-          clientDirectory,
-        })
-      )
-    })
-  }
-}
-
-function isDynamicKey(registerKey, baseDir) {
-  const replacementRegex = new RegExp(`^${baseDir}\/pages`)
-  let routeFor = registerKey
-    .replace(replacementRegex, '')
-    .replace(ENDS_WITH_EXT, '')
-  return DYNAMIC_PARAM_START.test(routeFor)
 }
 
 async function renderer(
@@ -192,7 +147,6 @@ async function renderer(
       body: [html],
     }
   )
-
   await esbuild.build({
     stdin: {
       contents: getInjectableLiveSource(liveServerPort),

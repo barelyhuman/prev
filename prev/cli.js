@@ -16,6 +16,7 @@ import mdx from '@mdx-js/esbuild'
 import chokidar from 'chokidar'
 import process from 'node:process'
 import coffeescript from 'esbuild-coffeescript'
+import { readRoutesFromDirectory } from './core/router.js'
 import { config as userConfig } from '../prev.config.js'
 
 const config = normalizeConfig(userConfig)
@@ -29,6 +30,8 @@ const islandDirectory = path.resolve(rootDirectory, 'dist')
 const clientDirectory = '.client'
 const plugRegister = []
 const isDev = process.argv.includes('--dev')
+
+const SERVER_PORT = process.env.PORT || 3000
 const LIVE_SERVER_PORT = process.env.LIVE_SERVER_PORT || 1234
 
 const buildContext = {
@@ -69,7 +72,7 @@ async function main() {
   const entries = await getEntries()
   await builder(islandDirectory, entries)
   await buildContext.build()
-  await initKernel(entries)
+  await initKernel()
 }
 
 async function cleanup() {
@@ -233,24 +236,27 @@ async function watcher() {
     .watch('./src', {
       cwd: rootDirectory,
     })
-    .on('change', async (event, path) => {
+    .on('change', async () => {
       await queueRestart()
     })
   await main()
   liveReloadServer.setup()
 }
 
-async function initKernel(entries) {
+async function initKernel() {
   log.debug('Starting server')
+  await readRoutesFromDirectory({
+    cwd: path.resolve(__dirname, islandDirectory, 'pages'),
+    outDir: path.resolve(__dirname, islandDirectory, 'pages'),
+  })
   const kernel = await config.getKernel()
   await kernel({
-    entries,
     isDev,
+    serverPort: SERVER_PORT,
     liveServerPort: LIVE_SERVER_PORT,
     plugRegister,
     clientDirectory: clientDirectory,
     baseDir: path.resolve(__dirname, islandDirectory),
-    sourceDir: path.resolve(rootDirectory, './src'),
   })
 }
 
@@ -277,7 +283,7 @@ function normalizeConfig(config) {
 
 async function queueRestart() {
   await buildContext.build()
-  await initKernel(await getEntries())
+  await initKernel()
   await liveReloadServer.reload()
 }
 
