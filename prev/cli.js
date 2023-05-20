@@ -10,6 +10,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parse, print } from 'recast'
 import glob from 'tiny-glob'
+import { log } from './lib/logger.js'
 
 import mdx from '@mdx-js/esbuild'
 import chokidar from 'chokidar'
@@ -29,17 +30,6 @@ const clientDirectory = '.client'
 const plugRegister = []
 const isDev = process.argv.includes('--dev')
 const LIVE_SERVER_PORT = process.env.LIVE_SERVER_PORT || 1234
-
-let servers = new Map()
-
-const log = {
-  debug: msg => {
-    const action = process.argv.includes('--debug')
-      ? () => console.log(msg)
-      : () => {}
-    action()
-  },
-}
 
 const buildContext = {
   ctx: undefined,
@@ -253,7 +243,7 @@ async function watcher() {
 async function initKernel(entries) {
   log.debug('Starting server')
   const kernel = await config.getKernel()
-  const server = await kernel({
+  await kernel({
     entries,
     isDev,
     liveServerPort: LIVE_SERVER_PORT,
@@ -262,7 +252,6 @@ async function initKernel(entries) {
     baseDir: path.resolve(__dirname, islandDirectory),
     sourceDir: path.resolve(rootDirectory, './src'),
   })
-  servers.set(Date.now(), server)
 }
 
 function getRootDirectory() {
@@ -287,25 +276,6 @@ function normalizeConfig(config) {
 }
 
 async function queueRestart() {
-  await Promise.all(
-    [...servers].map(([id, server]) => {
-      return new Promise(resolve => {
-        server.close(err => {
-          if (err) {
-            if (err.code === 'ERR_SERVER_NOT_RUNNING') {
-              servers.delete(id)
-              resolve()
-              return
-            }
-            console.error(err)
-            throw err
-          }
-          servers.delete(id)
-          resolve()
-        })
-      })
-    })
-  )
   await buildContext.build()
   await initKernel(await getEntries())
   await liveReloadServer.reload()

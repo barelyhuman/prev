@@ -1,14 +1,74 @@
-import { serve } from '@hono/node-server'
 import { serveStatic } from '@hono/node-server/serve-static'
-import { Hono } from 'hono'
 import path from 'node:path'
 import process from 'node:process'
 import preactRenderToString from 'preact-render-to-string'
+import { Hono } from 'hono'
+import { serve } from '@hono/node-server'
 import * as esbuild from 'esbuild'
+import { log } from '../lib/logger.js'
 
 const DYNAMIC_PARAM_START = /\/\+/g
 const ENDS_WITH_EXT = /\.(jsx?|tsx?)$/
 const PORT = process.env.PORT || 3000
+
+const server = {
+  activeInstance: undefined,
+  app: undefined,
+  port: PORT,
+
+  /**
+   * @param {object} options
+   * @param {boolean} [options.force=false]
+   * Initialize the server singleton, and create the hono
+   * app instance if it didn't exist.
+   */
+  async init({ force = false }) {
+    if (this.activeInstance && !force) {
+      return
+    }
+
+    if (this.activeInstance && force) {
+      log.debug('Force Restarting Server')
+      await this.close()
+    }
+
+    if (!this.app) {
+      this.app = new Hono()
+    }
+
+    this.activeInstance = serve(
+      {
+        fetch: this.app.fetch,
+        port: this.port,
+      },
+      info => {
+        console.log(`Listening on http://localhost:${info.port}`)
+      }
+    )
+  },
+  close() {
+    const self = this
+
+    return new Promise(resolve => {
+      if (!self.activeInstance) {
+        log.debug('nothing to shut down')
+        resolve()
+      }
+      self.activeInstance.close(err => {
+        if (err) {
+          if (err.code === 'ERR_SERVER_NOT_RUNNING') {
+            resolve()
+            return
+          }
+          console.error(err)
+          throw err
+        }
+        self.activeInstance = undefined
+        resolve()
+      })
+    })
+  },
+}
 
 export async function kernel({
   entries,
@@ -19,8 +79,9 @@ export async function kernel({
   clientDirectory,
   sourceDir,
 }) {
-  const app = new Hono()
   const routeRegisterSeq = []
+
+  await server.init({ force: true })
 
   for (const x of entries) {
     if (!x.startsWith(path.resolve(sourceDir, 'pages'))) continue
@@ -30,14 +91,14 @@ export async function kernel({
   }
 
   for (const registerKey of routeRegisterSeq) {
-    await registerRoute(app, registerKey, baseDir, plugRegister, {
+    await registerRoute(server.app, registerKey, baseDir, plugRegister, {
       isDev,
       clientDirectory,
       liveServerPort,
     })
   }
 
-  app.get(
+  server.app.get(
     '/public/*',
     serveStatic({
       root: path.relative(
@@ -48,16 +109,6 @@ export async function kernel({
         return p.replace('/public/', '/')
       },
     })
-  )
-
-  const server = serve(
-    {
-      fetch: app.fetch,
-      port: PORT,
-    },
-    info => {
-      console.log(`Listening on http://localhost:${info.port}`)
-    }
   )
 
   return server
