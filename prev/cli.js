@@ -142,16 +142,29 @@ function getClientConfig(entries, outDir) {
         name: 'injector',
         async setup(build) {
           build.onLoad(
-            { filter: /\.island\.client(-\w*)?\.(js|ts)x?$/ },
+            { filter: /\.client(-\w*)?\.(js|ts)x?$/ },
             async args => {
               const baseCode = fs.readFileSync(args.path, 'utf8')
+              let isIsland = false
+
+              if (/\.island\.client(-\w*)?\.(js|ts)x?$/.test(args.path)) {
+                isIsland = true
+              } else {
+                if (/\/\/ *@island?$/gim.test(baseCode)) {
+                  isIsland = true
+                }
+              }
+
+              if (!isIsland) {
+                return
+              }
+
               const ast = parse(baseCode, {
                 parser: require('recast/parsers/babel-ts'),
               })
               const withInjections = plugRegister.reduce((acc, x) => {
                 return (x.injectOnClient && x.injectOnClient(acc)) || acc
               }, ast)
-
               return {
                 contents: print(withInjections).code,
                 loader: 'jsx',
