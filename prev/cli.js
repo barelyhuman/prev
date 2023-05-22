@@ -184,7 +184,7 @@ function getServerConfig(entries, outDir) {
       }),
       nodeExternalsPlugin(),
       preactIslandPlugin({
-        baseURL: 'public',
+        baseURL: '/public',
         atomic: true,
         hash: true,
         cwd: path.resolve(fileURLToPath(new URL('.', import.meta.url)), outDir),
