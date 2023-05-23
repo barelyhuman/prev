@@ -8,7 +8,7 @@
 
 > **Note**: It is not recommended to use this CLI without the
 > [barelyhuman/prev](https://github.com/barelyhuman/prev) template, since you'll
-> have to configure your structure accordingly anyway. Easier to clone it
+> have to configure your structure accordingly. Easier to clone the template
 > instead.
 
 ## Installation
@@ -38,7 +38,6 @@ npx @barelyhuman/prev --dev ./path/to/root-of-project
    tailwindcss
 
 ## Documentation
-
 TBD
 
 ## License

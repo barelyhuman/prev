@@ -63,7 +63,7 @@ const stringifyTag = (tagName, tags) =>
 const stringifyHoofd = (title, metas, links) => {
   return `
     <title>${title}</title>
-    ${stringifyTag('meta', metas)} 
+    ${stringifyTag('meta', metas)}
     ${stringifyTag('link', links)}
   `
 }
