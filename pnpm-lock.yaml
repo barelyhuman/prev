@@ -66,8 +66,8 @@ importers:
   prev:
     dependencies:
       '@barelyhuman/preact-island-plugins':
-        specifier: ^0.0.6
-        version: 0.0.6(esbuild@0.17.17)
+        specifier: ^0.0.10
+        version: 0.0.10(esbuild@0.17.17)
       '@hono/node-server':
         specifier: ^0.6.0
         version: 0.6.0
@@ -434,8 +434,8 @@ packages:
       to-fast-properties: 2.0.0
     dev: false
 
-  /@barelyhuman/preact-island-plugins@0.0.6(esbuild@0.17.17):
-    resolution: {integrity: sha512-OXboRkrtcF6G6kvAR3uHOS2KYyt40KP8opkbxcd2+bPjkiVdTsZuVYLV841wVRpfBUXurtWc1ymEO2UbfLkQ+A==}
+  /@barelyhuman/preact-island-plugins@0.0.10(esbuild@0.17.17):
+    resolution: {integrity: sha512-1NSS+AjiZEURzZRxtYPZoA+Wcf31jrOr7qW3CUmm+2X7/8xbbkV6/890zkmq3sNG6bMlC4jeLMBhpB9jmmPOcQ==}
     peerDependencies:
       esbuild: ^0.17.16
       vite: ^4.1.0
