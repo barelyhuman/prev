@@ -1,23 +1,22 @@
 #!/usr/bin/env node
 import preactIslandPlugin from '@barelyhuman/preact-island-plugins/esbuild'
 import * as esbuild from 'esbuild'
-import http from 'node:http'
 import { nodeExternalsPlugin } from 'esbuild-node-externals'
 import fs from 'node:fs'
 import fsPromises from 'node:fs/promises'
+import http from 'node:http'
 import { createRequire } from 'node:module'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parse, print } from 'recast'
 import glob from 'tiny-glob'
 import { log } from './lib/logger.js'
-
 import mdx from '@mdx-js/esbuild'
 import chokidar from 'chokidar'
-import process from 'node:process'
 import coffeescript from 'esbuild-coffeescript'
-import { readRoutesFromDirectory } from './core/router.js'
+import process from 'node:process'
 import { config as userConfig } from '../prev.config.js'
+import { readRoutesFromDirectory } from './core/router.js'
 
 const config = normalizeConfig(userConfig)
 
@@ -112,6 +111,9 @@ async function builder(baseDir, entries) {
 
   ctx['02-client'] = {
     async rebuild(opts) {
+      if (!fs.existsSync(`${baseDir}/.generated`)) {
+        return
+      }
       const generatedEntries = await glob(
         `${baseDir}/.generated/**/*.client-is*.js`,
         {
