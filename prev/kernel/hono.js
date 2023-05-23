@@ -1,11 +1,11 @@
-import { serveStatic } from '@hono/node-server/serve-static'
-import preactRenderToString from 'preact-render-to-string'
-import { Hono } from 'hono'
 import { serve } from '@hono/node-server'
-import { log } from '../lib/logger.js'
+import { serveStatic } from '@hono/node-server/serve-static'
 import * as esbuild from 'esbuild'
+import { Hono } from 'hono'
 import path from 'node:path'
+import preactRenderToString from 'preact-render-to-string'
 import { getRoutes } from '../core/router.js'
+import { log } from '../lib/logger.js'
 
 async function mapHonoCtxToPrev(ctx) {
   let requestBody = await ctx.req.text()
@@ -68,12 +68,13 @@ const server = {
    */
   async init({ force = false }) {
     if (this.activeInstance && !force) {
-      return
+      throw new Error('Cannot re-init server')
     }
 
     if (this.activeInstance && force) {
       log.debug('Force Restarting Server')
       await this.close()
+      this.app = undefined
     }
 
     if (!this.app) {
@@ -137,7 +138,6 @@ export async function kernel({
           if (!result) return
           if (result instanceof Response) return result
 
-          ctx.res.header('content-type', 'text/html')
           return ctx.res.html(
             await renderer(result, plugRegister, {
               isDev,
