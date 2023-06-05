@@ -74,27 +74,20 @@ const server = {
 }
 
 export async function kernel({
-  entries,
   isDev,
   liveServerPort,
   plugRegister,
   baseDir,
   clientDirectory,
-  sourceDir,
+  routes,
 }) {
-  const routeRegisterSeq = []
-
   await server.init({ force: true })
 
-  for (const x of entries) {
-    if (!x.startsWith(path.resolve(sourceDir, 'pages'))) continue
-    const _x = x.replace(sourceDir, baseDir)
-    if (isDynamicKey(_x, baseDir)) routeRegisterSeq.push(_x)
-    else routeRegisterSeq.unshift(_x)
-  }
-
-  for (const registerKey of routeRegisterSeq) {
-    await registerRoute(server.app, registerKey, baseDir, plugRegister, {
+  for (const route of routes) {
+    await registerRoute(server.app, {
+      ...route,
+      outDir: baseDir,
+      plugRegister,
       isDev,
       clientDirectory,
       liveServerPort,
@@ -118,6 +111,41 @@ export async function kernel({
 }
 
 async function registerRoute(
+  router,
+  { url, module, plugRegister, isDev, outDir, clientDirectory, liveServerPort }
+) {
+  const allowedKeys = ['get', 'post', 'put', 'delete']
+
+  for (const httpMethod of allowedKeys) {
+    if (!module[httpMethod]) continue
+
+    if (httpMethod !== 'get') {
+      router[httpMethod](url, module[httpMethod])
+      continue
+    }
+
+    router.get(url, async ctx => {
+      const result = await module.get(ctx)
+      if (!result) return
+
+      // Handle normal Hono Responses
+      if (result instanceof Response) return result
+
+      // Handle Preact component tree
+      ctx.header('content-type', 'text/html')
+      return ctx.html(
+        await renderer(result, plugRegister, {
+          outDir,
+          isDev,
+          liveServerPort,
+          clientDirectory,
+        })
+      )
+    })
+  }
+}
+
+async function oldRegisterRoute(
   router,
   registerKey,
   outDir,
