@@ -1,7 +1,19 @@
 import glob from 'tiny-glob'
 import path from 'node:path'
+import fs from 'node:fs'
 
 const DYNAMIC_PARAM_START = /\/\+/g
+
+export async function getRouterModule(sourceDirectory) {
+  const routerModulePath = path.resolve(sourceDirectory, './router.js')
+  if (!fs.existsSync(routerModulePath)) {
+    return _ => void 0
+  }
+
+  let routerModule = await import(`${routerModulePath}?update${Date.now()}`)
+  routerModule = 'default' in routerModule ? routerModule.default : routerModule
+  return routerModule
+}
 
 export async function scanDirectoryForRoutes(dir) {
   const pages = await glob('./**/*.{tsx,js,ts,jsx}', {

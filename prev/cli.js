@@ -71,7 +71,7 @@ async function main() {
   const entries = await getEntries()
   await builder(islandDirectory, entries)
   await buildContext.build()
-  await initKernel(entries)
+  await initKernel()
 }
 
 async function cleanup() {
@@ -256,7 +256,7 @@ async function watcher() {
   liveReloadServer.setup()
 }
 
-async function initKernel(entries) {
+async function initKernel() {
   log.debug('Starting server')
   const kernel = await config.getKernel()
   const routes = await scanDirectoryForRoutes(
@@ -296,7 +296,7 @@ function normalizeConfig(config) {
 async function queueRestart() {
   log.print('Restarting...')
   await buildContext.build()
-  await initKernel(await getEntries())
+  await initKernel()
   await liveReloadServer.reload()
 }
 
