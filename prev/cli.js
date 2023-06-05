@@ -109,6 +109,7 @@ async function builder(baseDir, entries) {
 
   ctx['02-client'] = {
     async rebuild(opts) {
+      if (!fs.existsSync(`${baseDir}/.generated`)) return
       const generatedEntries = await glob(
         `${baseDir}/.generated/**/*.client-is*.js`,
         {

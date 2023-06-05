@@ -64,6 +64,8 @@ const server = {
           throw err
         }
         self.activeInstance = undefined
+        self.app = undefined
+
         resolve()
       })
     })
