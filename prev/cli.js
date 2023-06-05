@@ -290,6 +290,7 @@ function normalizeConfig(config) {
 }
 
 async function queueRestart() {
+  log.print('Restarting...')
   await buildContext.build()
   await initKernel(await getEntries())
   await liveReloadServer.reload()

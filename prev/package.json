@@ -25,6 +25,7 @@
     "esbuild-coffeescript": "^2.2.0",
     "esbuild-node-externals": "^1.7.0",
     "hono": "^3.1.7",
+    "kleur": "^4.1.5",
     "preact": "^10.13.2",
     "preact-render-to-string": "^6.0.2",
     "tiny-glob": "^0.2.9"

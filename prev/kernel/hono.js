@@ -5,6 +5,7 @@ import preactRenderToString from 'preact-render-to-string'
 import { Hono } from 'hono'
 import { serve } from '@hono/node-server'
 import * as esbuild from 'esbuild'
+import kl from 'kleur'
 import { log } from '../lib/logger.js'
 
 const DYNAMIC_PARAM_START = /\/\+/g
@@ -42,7 +43,7 @@ const server = {
         port: this.port,
       },
       info => {
-        console.log(`Listening on http://localhost:${info.port}`)
+        log.print(`>> Listening on ${kl.cyan(info.port)}`)
       }
     )
   },
