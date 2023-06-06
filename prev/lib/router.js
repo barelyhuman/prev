@@ -1,13 +1,14 @@
 import glob from 'tiny-glob'
 import path from 'node:path'
 import fs from 'node:fs'
+import { noop } from './functions'
 
 const DYNAMIC_PARAM_START = /\/\+/g
 
 export async function getRouterModule(sourceDirectory) {
   const routerModulePath = path.resolve(sourceDirectory, './router.js')
   if (!fs.existsSync(routerModulePath)) {
-    return _ => void 0
+    return noop
   }
 
   let routerModule = await import(`${routerModulePath}?update${Date.now()}`)
