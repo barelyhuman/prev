@@ -5,11 +5,11 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "lerna": "yarn lerna",
+    "lerna": "npx lerna",
     "dev": "npx prev --dev",
     "start": "npx prev",
-    "fix": "yarn eslint --fix .",
-    "prepare": "husky install; npx lerna bootstrap; npx lerna link "
+    "fix": "npx eslint --fix .",
+    "prepare": "husky install; npx lerna bootstrap; npx lerna link"
   },
   "prettier": "@barelyhuman/prettier-config",
   "dependencies": {

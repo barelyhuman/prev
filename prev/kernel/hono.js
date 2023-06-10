@@ -43,7 +43,11 @@ const server = {
         port: this.port,
       },
       info => {
-        log.print(`>> Listening on ${kl.cyan(info.port)}`)
+        log.print(
+          `>> Started Server\n\n   Localhost: http://${kl.cyan(
+            info.address
+          )}:${kl.cyan(info.port)}`
+        )
       }
     )
   },
