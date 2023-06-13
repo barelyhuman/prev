@@ -1,4 +1,4 @@
-import { useTitle } from '../lib/head'
+import { useTitle } from 'prev/head.js'
 
 export default function BaseLayout({ title, children }) {
   useTitle(title || 'Preact Island Example')

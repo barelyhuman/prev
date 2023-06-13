@@ -3,26 +3,31 @@
   "version": "1.0.0",
   "license": "MIT",
   "type": "module",
-  "private": true,
   "scripts": {
-    "lerna": "npx lerna",
-    "dev": "npx prev --dev",
-    "start": "npx prev",
+    "dev": "node prev/cli.js --dev",
+    "start": "node prev/cli.js ",
     "fix": "npx eslint --fix .",
-    "prepare": "husky install; npx lerna bootstrap; npx lerna link"
+    "prepare": "husky install"
   },
   "prettier": "@barelyhuman/prettier-config",
   "dependencies": {
-    "@barelyhuman/prev": "0.0.1",
+    "@barelyhuman/preact-island-plugins": "^0.0.10",
     "@mdx-js/esbuild": "^2.3.0",
     "@mdx-js/preact": "^2.3.0",
     "@twind/core": "^1.1.3",
     "@twind/preset-tailwind": "^1.1.4",
     "diff-dom": "^5.0.4",
+    "esbuild": "^0.18.0",
+    "esbuild-ts-paths": "^1.1.3",
     "goober": "^2.1.13",
     "hoofd": "^1.5.2",
+    "polka": "^0.5.2",
     "preact": "^10.13.2",
-    "recast": "^0.22.0"
+    "preact-render-to-string": "^6.1.0",
+    "recast": "^0.22.0",
+    "serve-static": "^1.15.0",
+    "static-serve": "^0.0.1",
+    "tiny-glob": "^0.2.9"
   },
   "devDependencies": {
     "@barelyhuman/prettier-config": "^1.1.0",
@@ -31,16 +36,12 @@
     "eslint-plugin-prettier": "^4.2.1",
     "eslint-plugin-unicorn": "^46.0.0",
     "husky": ">=7",
-    "lerna": "^6.6.2",
     "lint-staged": ">=10",
+    "mri": "^1.2.0",
     "nodemon": "^2.0.22",
     "prettier": "^2.8.7"
   },
   "lint-staged": {
     "*.js": "eslint --fix"
-  },
-  "workspaces": [
-    "./prev",
-    "."
-  ]
+  }
 }

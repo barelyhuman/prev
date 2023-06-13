@@ -1,7 +1,7 @@
 import Navigation from '@/components/navigation.js'
 import BaseLayout from '@/layouts/BaseLayout'
 
-export function get(ctx) {
+export function get() {
   return (
     <BaseLayout title="Home">
       <Navigation />
