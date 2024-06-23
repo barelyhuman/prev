@@ -5,7 +5,7 @@ import "./app.css";
 
 const Home = () => {
   const [count, setCount] = useState(0);
-  return <button onClick={() => setCount(count + 1)}>{count}</button>;
+  return <button onClick={() => setCount(count + 1)}>{count} clicks</button>;
 };
 
 const About = () => {

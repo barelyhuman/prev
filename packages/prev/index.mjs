@@ -1,13 +1,15 @@
 #! /usr/bin/env node
 
-import { build } from "esbuild";
-import fs from "node:fs";
+import { context } from "esbuild";
 import { nodeExternalsPlugin } from "esbuild-node-externals";
-import { fileURLToPath } from "node:url";
+import fs from "node:fs";
 import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import nodemon from "nodemon";
 
-const userArgs = process.argv.slice(2);
-const entryPoint = userArgs.length > 0 ? userArgs[0] : "./src/app.js";
+const { entryPoint, build: buildMode } = parseArgs();
+
+const isDev = !buildMode;
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -17,7 +19,7 @@ await fs.promises.mkdir(clientOutDir, {
   recursive: true,
 });
 
-const clientOutput = await build({
+const clientOptions = {
   entryPoints: [entryPoint],
   loader: {
     ".js": "jsx",
@@ -54,16 +56,14 @@ const clientOutput = await build({
       },
     },
   ],
-});
+};
 
-if (clientOutput.errors.length > 0) {
-  console.log(clientOutput.errors);
-}
+const clientContext = await context(clientOptions);
 
 const runtimeEntry = {
   server: join(__dirname, "lib/runtime/server.js"),
 };
-const serverOutput = await build({
+const serverOptions = {
   entryPoints: [runtimeEntry.server],
   loader: {
     ".js": "jsx",
@@ -81,10 +81,30 @@ const serverOutput = await build({
   plugins: [virtualMods(), nodeExternalsPlugin(), ignoreCSSOnServer()],
   jsx: "automatic",
   jsxImportSource: "preact",
-});
+};
+const serverContext = await context(serverOptions);
 
-if (serverOutput.errors.length > 0) {
-  console.log(serverOutput.errors);
+if (isDev) {
+  console.log("Watching...");
+  clientContext.watch();
+  serverContext.watch();
+
+  nodemon({ script: "./.output/server.mjs" })
+    .on("start", function () {
+      console.log("Starting app watcher");
+    })
+    .on("crash", function () {
+      console.error("script crashed for some reason");
+    });
+}
+
+const clientOuput = await clientContext.rebuild();
+const serverOuput = await serverContext.rebuild();
+if (clientOuput.errors.length > 0) {
+  clientOuput.errors.map((d) => console.error(d));
+}
+if (serverOuput.errors.length > 0) {
+  serverOuput.errors.map((d) => console.error(d));
 }
 
 /**
@@ -165,4 +185,22 @@ function virtualMods() {
       );
     },
   };
+}
+
+function parseArgs() {
+  const args = process.argv.slice(2);
+  const result = {
+    entryPoint: "./src/app.js",
+    build: false,
+  };
+  if (args.length == 0) {
+    return result;
+  }
+
+  if (args.length == 1) {
+    if (args[0] === "build") {
+      result.build = true;
+    }
+  }
+  return result;
 }
