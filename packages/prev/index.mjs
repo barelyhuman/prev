@@ -4,7 +4,7 @@ import { build } from "esbuild";
 import fs from "node:fs";
 import { nodeExternalsPlugin } from "esbuild-node-externals";
 import { fileURLToPath } from "node:url";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 
 const userArgs = process.argv.slice(2);
 const entryPoint = userArgs.length > 0 ? userArgs[0] : "./src/app.js";
@@ -78,7 +78,7 @@ const serverOutput = await build({
     ".js": ".mjs",
   },
   external: ["wouter-preact"],
-  plugins: [virtualMods(), nodeExternalsPlugin()],
+  plugins: [virtualMods(), nodeExternalsPlugin(), ignoreCSSOnServer()],
   jsx: "automatic",
   jsxImportSource: "preact",
 });
@@ -90,24 +90,29 @@ if (serverOutput.errors.length > 0) {
 /**
  * @returns {import("esbuild").Plugin}
  */
-function resolveClientPreact() {
+function ignoreCSSOnServer() {
   return {
-    name: "force-resolve-client-deps",
+    name: "ignoreCSS",
     setup(builder) {
       builder.onResolve(
         {
-          filter: /^preact(\/.*)?/,
+          filter: /.*\.css$/,
         },
         (args) => {
-          return builder.resolve(args.path, {
-            pluginName: args.pluginName,
-            importer: args.importer,
-            namespace: args.namespace,
-            resolveDir: process.cwd(),
-            kind: args.kind,
-            pluginData: args.pluginData,
-            with: args.with,
-          });
+          return {
+            path: resolve(args.path),
+          };
+        }
+      );
+      builder.onLoad(
+        {
+          filter: /.*\.css$/,
+        },
+        (args) => {
+          return {
+            contents: "",
+            loader: "js",
+          };
         }
       );
     },
