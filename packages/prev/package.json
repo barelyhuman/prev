@@ -1,0 +1,25 @@
+{
+  "name": "@barelyhuman/prev",
+  "version": "0.0.0",
+  "bin": {
+    "prev": "./index.mjs"
+  },
+  "exports": {
+    "./utils": "./lib/runtime/utils.js"
+  },
+  "type": "module",
+  "devDependencies": {
+    "preact": "^10.22.0"
+  },
+  "peerDependencies": {
+    "preact": "^10.22.0"
+  },
+  "dependencies": {
+    "@barelyhuman/tiny-use": "^0.0.1",
+    "esbuild": "^0.21.5",
+    "esbuild-node-externals": "^1.13.1",
+    "preact-render-to-string": "^6.5.5",
+    "serve-static": "^1.15.0",
+    "trouter": "^4.0.0"
+  }
+}

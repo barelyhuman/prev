@@ -1,0 +1,18 @@
+{
+  "name": "basic",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "prev"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@barelyhuman/prev": "workspace:*",
+    "preact": "*",
+    "preact-router": "^4.1.2",
+    "wouter-preact": "^3.2.1"
+  }
+}
