@@ -1,6 +1,9 @@
 {
   "name": "@barelyhuman/prev",
-  "version": "0.0.0",
+  "version": "0.0.1",
+  "publishConfig": {
+    "access": "public"
+  },
   "bin": {
     "prev": "./index.mjs"
   },
