@@ -3,8 +3,14 @@
   "version": "0.0.0",
   "private": true,
   "description": "",
-  "scripts": {},
+  "scripts": {
+    "next": "pnpm lerna"
+  },
   "keywords": [],
   "author": "",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {
+    "lerna": "^8.1.3"
+  }
 }
