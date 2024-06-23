@@ -107,6 +107,11 @@ if (serverOuput.errors.length > 0) {
   serverOuput.errors.map((d) => console.error(d));
 }
 
+if (!isDev) {
+  await clientContext.dispose();
+  await serverContext.dispose();
+}
+
 /**
  * @returns {import("esbuild").Plugin}
  */
