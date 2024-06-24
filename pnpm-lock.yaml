@@ -30,6 +30,21 @@ importers:
         specifier: ^3.2.1
         version: 3.2.1(preact@10.22.0)
 
+  examples/real-world:
+    dependencies:
+      '@barelyhuman/prev':
+        specifier: workspace:*
+        version: link:../../packages/prev
+      preact:
+        specifier: '*'
+        version: 10.22.0
+      preact-router:
+        specifier: ^4.1.2
+        version: 4.1.2(preact@10.22.0)
+      wouter-preact:
+        specifier: ^3.2.1
+        version: 3.2.1(preact@10.22.0)
+
   packages/prev:
     dependencies:
       '@barelyhuman/tiny-use':
@@ -41,6 +56,9 @@ importers:
       esbuild-node-externals:
         specifier: ^1.13.1
         version: 1.13.1(esbuild@0.21.5)
+      hoofd:
+        specifier: ^1.7.1
+        version: 1.7.1(react@18.3.1)
       nodemon:
         specifier: ^3.1.4
         version: 3.1.4
@@ -2222,6 +2240,14 @@ packages:
       function-bind: 1.1.2
     dev: true
 
+  /hoofd@1.7.1(react@18.3.1):
+    resolution: {integrity: sha512-G+RUtbwR/nPRoJu33Fu/agPXax3J3tRZvs/AZ/8eWWqXPfAvhOWETBJRsRZC2dIzJvXZnMiO+6ui5vi+ftKRqw==}
+    peerDependencies:
+      react: '>= 16.8.0'
+    dependencies:
+      react: 18.3.1
+    dev: false
+
   /hosted-git-info@2.8.9:
     resolution: {integrity: sha512-mxIDAb9Lsm6DoOJ7xH+5+X4y1LU/4Hi50L9C5sIswK3JzULS4bwk1FvjdBgvYR4bzT4tuUQiC15FE2f5HbLvYw==}
     dev: true
@@ -2628,7 +2654,6 @@ packages:
 
   /js-tokens@4.0.0:
     resolution: {integrity: sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ==}
-    dev: true
 
   /js-yaml@3.14.1:
     resolution: {integrity: sha512-okMH7OXXJ7YrN9Ok3/SXrnu4iX9yOk+25nqX4imS2npuvTYDmo/QEZoqwZkYaIDk3jVvBOTOIEgEhaLOynBS9g==}
@@ -2879,6 +2904,13 @@ packages:
       chalk: 4.1.0
       is-unicode-supported: 0.1.0
     dev: true
+
+  /loose-envify@1.4.0:
+    resolution: {integrity: sha512-lyuxPGr/Wfhrlem2CL/UcnUc1zcqKAImBDzukY7Y5F/yQiNdko6+fRLevlw1HgMySw7f611UIY408EtxRSoK3Q==}
+    hasBin: true
+    dependencies:
+      js-tokens: 4.0.0
+    dev: false
 
   /lru-cache@10.2.2:
     resolution: {integrity: sha512-9hp3Vp2/hFQUiIwKo8XCeFVnrg8Pk3TYNPIR7tJADKi5YfcF7vEaK7avFHTlSy3kOKYaJQaalfEo6YuXdceBOQ==}
@@ -4006,6 +4038,13 @@ packages:
   /react-is@18.3.1:
     resolution: {integrity: sha512-/LLMVyas0ljjAtoYiPqYiL8VWXzUUdThrmU5+n20DZv+a+ClRoevUzw5JxU+Ieh5/c87ytoTBV9G1FiKfNJdmg==}
     dev: true
+
+  /react@18.3.1:
+    resolution: {integrity: sha512-wS+hAgJShR0KhEvPJArfuPVN1+Hz1t0Y6n5jLrGQbkb4urgPE/0Rve+1kMB1v/oWgHgm4WIcV+i7F2pTVj+2iQ==}
+    engines: {node: '>=0.10.0'}
+    dependencies:
+      loose-envify: 1.4.0
+    dev: false
 
   /read-cmd-shim@4.0.0:
     resolution: {integrity: sha512-yILWifhaSEEytfXI76kB9xEEiG1AiozaCJZ83A87ytjRiN+jVibXjedjCRNjoZviinhG+4UkalO3mWTd8u5O0Q==}
