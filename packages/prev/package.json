@@ -8,7 +8,8 @@
     "prev": "./index.mjs"
   },
   "exports": {
-    "./utils": "./lib/runtime/utils.js"
+    "./utils": "./lib/runtime/utils.js",
+    "./head": "./lib/features/head.js"
   },
   "type": "module",
   "devDependencies": {
@@ -21,6 +22,7 @@
     "@barelyhuman/tiny-use": "^0.0.1",
     "esbuild": "^0.21.5",
     "esbuild-node-externals": "^1.13.1",
+    "hoofd": "^1.7.1",
     "nodemon": "^3.1.4",
     "preact-render-to-string": "^6.5.5",
     "serve-static": "^1.15.0",

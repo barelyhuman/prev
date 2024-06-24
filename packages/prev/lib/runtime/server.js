@@ -4,6 +4,7 @@ import {
   renderToString,
   use,
 } from "@barelyhuman/prev/utils";
+import { toStatic } from "@barelyhuman/prev/head";
 import http from "node:http";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -22,16 +23,14 @@ const html = String.raw;
 http
   .createServer(
     use(serve, routerMiddleware(), async (req, res, next) => {
+      const { metas, links, title, lang } = toStatic();
+      const stringified = stringify(title, metas, links);
+
       const wrappedHTML = html`
-        <!DOCTYPE html>
-        <html lang="en">
+        <!doctype html>
+        <html ${lang ? `lang="${lang}"` : "en"}>
           <head>
-            <meta charset="UTF-8" />
-            <meta
-              name="viewport"
-              content="width=device-width, initial-scale=1.0"
-            />
-            <title>Document</title>
+            ${stringified}
           </head>
           <body>
             <div id="root">
@@ -47,7 +46,7 @@ http
       res.setHeader("content-type", "text/html");
       res.end(finalHTML);
       return;
-    })
+    }),
   )
   .listen(3000, () => {
     console.log("listening on :3000");
@@ -66,3 +65,20 @@ function routerMiddleware() {
     await next();
   };
 }
+
+const stringify = (title, metas, links) => {
+  const stringifyTag = (tagName, tags) =>
+    tags.reduce((acc, tag) => {
+      `${acc}<${tagName}${Object.keys(tag).reduce(
+        (properties, key) => `${properties} ${key}="${tag[key]}"`,
+        "",
+      )}>`;
+    }, "");
+
+  return `
+    <title>${title}</title>
+
+    ${stringifyTag("meta", metas)}
+    ${stringifyTag("link", links)}
+  `;
+};
